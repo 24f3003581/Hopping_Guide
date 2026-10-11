@@ -15,8 +15,24 @@ A native iOS port of the [Hopping Guide](https://github.com/Arnab-apk/Hopping_Gu
 | **Services** | LocationService (CLLocationManager), RoutingService (MKDirections + geodesic fallback), OmniSearchService (token-weighted phonetic), TrailOptimizer (Held-Karp + 2-opt), SquadService, ChatService, UserStateService, ThemeService |
 | **Utils** | Haversine (distance + bearing), PujaSchedule (12-day countdown), DouglasPeucker (polyline simplify), SpatialCorridor (10 km + 70 km fallback), PandalSpatialCluster |
 | **Design System** | LiquidGlass (centralized modifier), Theme (PujaColors tokens), PujaIcons (14 PNGs × 3 variants loaded from asset catalog), Haptics |
-| **Features** | WelcomeView (animated countdown), MapTabView (MKMapView + Liquid Glass HUD), PandalsListView, PandalDetailView, RoutesView (6 curated circuits), SquadHubView (4-card layout), SquadChatView (text-only v1), HelplinesView (one-tap dialer) |
-| **Tests** | 6 test files: TrailOptimizer (Held-Karp vs brute force on N≤8, 2-opt on N=20), OmniSearch, Haversine, DouglasPeucker, PandalSpatialCluster, LiquidGlassAvailability |
+| **Features** | WelcomeView (animated countdown with <=800ms splash), MapTabView (MKMapView + Liquid Glass HUD + focused transit pins + numbered stops), PandalsListView (cached single-pass distance matrix), PandalDetailView, RoutesView (6 curated circuits), SquadHubView (4-card hub + Group Video Call entry), SquadChatView (text chat + direct video call), GroupVideoCallView (squad video room with fixed End Call button & hosted backend fallback), HelplinesView (one-tap dialer) |
+| **Tests** | 9 test files: TrailOptimizer, OmniSearch, Haversine, DouglasPeucker, PandalSpatialCluster, LiquidGlassAvailability, LocationFixValidation, RoutingCoalescing, GroupVideoApi |
+
+## v1.0.0 Enhancements
+
+- **On-Demand Tab Mounting**: Inactive tabs mount strictly when selected, preserving state upon visit while eliminating background ticker and layout overhead.
+- **Snappier Greeting / Splash**: Greeting splash minimum hold time reduced to <= 800 ms with redundant delays removed and persistent onboarding.
+- **Pandal Directory Caching**: Directory listing rebuilds solely on genuine coordinate displacements (>20 m) rather than compass orientation ticks. Haversine distance calculations are cached per pass.
+- **Directions Request Coalescing**: Concurrent identical route queries are coalesced within `RoutingService` to eliminate redundant network requests.
+- **Squad Group Video Calling**:
+  - Full squad room interface (`GroupVideoCallView`) with participant video/avatar grid and active speaker detection.
+  - Prominent, accessible red **"End call"** button cleanly anchored below media controls and elevated above gesture navigation.
+  - Automatic resilient fallback to hosted squad calling backend (`https://uma-group-calling.onrender.com`).
+  - Seamless entry from both Squad Hub and Squad Chat.
+- **Route & Transit Map Pins Refinement**:
+  - Focused station pins: trail and itinerary maps display intermediate, boarding, and interchange stations strictly for active transit legs, suppressing unrelated clutter.
+  - Layering priority: Numbered festival pins render atop station markers (`zPriority: 1000` vs `500`).
+  - Strict GPS Fix Validation: Trail progress checks require GPS timestamps $\le$ 10 seconds fresh and accuracy $\le$ 30 meters, rejecting jitter and duplicate arrivals.
 
 ## White-pixel bug fix
 

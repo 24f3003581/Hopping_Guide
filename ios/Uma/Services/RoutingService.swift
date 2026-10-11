@@ -14,6 +14,7 @@ actor RoutingService {
         let timestamp: Date
     }
     private var cache: [String: CachedRoute] = [:]
+    private var inFlight: [String: Task<WalkingRoute, Never>] = [:]
     private let cacheLimit = 100
     private var consecutiveFailures = 0
     private var circuitBreakerUntil: Date?
@@ -21,7 +22,7 @@ actor RoutingService {
     func clearCache() { cache.removeAll() }
     func resetCircuitBreaker() { consecutiveFailures = 0; circuitBreakerUntil = nil }
 
-    /// Get a walking route between two coordinates.
+    /// Get a walking route between two coordinates. Coalesces concurrent identical requests.
     func getWalkingRoute(
         start: CLLocationCoordinate2D,
         destination: CLLocationCoordinate2D,
@@ -40,6 +41,29 @@ actor RoutingService {
                 legs: hit.route.legs)
         }
 
+        // Return ongoing in-flight calculation if identical request is currently active
+        if let existing = inFlight[cacheKey] {
+            return await existing.value
+        }
+
+        let task = Task<WalkingRoute, Never> { [weak self] in
+            guard let self = self else {
+                return WalkingRoute(points: [start, destination], distanceMeters: 0, durationSeconds: 0, destinationTitle: destinationName)
+            }
+            return await self.executeWalkingRouteCalculation(start: start, destination: destination, destinationName: destinationName, cacheKey: cacheKey)
+        }
+        inFlight[cacheKey] = task
+        let result = await task.value
+        inFlight.removeValue(forKey: cacheKey)
+        return result
+    }
+
+    private func executeWalkingRouteCalculation(
+        start: CLLocationCoordinate2D,
+        destination: CLLocationCoordinate2D,
+        destinationName: String,
+        cacheKey: String
+    ) async -> WalkingRoute {
         // Circuit-breaker check
         if let until = circuitBreakerUntil, Date() < until {
             return geodesicFallback(start: start, destination: destination,

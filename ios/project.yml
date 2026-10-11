@@ -26,6 +26,9 @@ targets:
       path: Uma/Info.plist
       properties:
         NSLocationWhenInUseUsageDescription: "To show your location and walking routes on the map."
+        NSCameraUsageDescription: "To share video during squad group video calls."
+        NSMicrophoneUsageDescription: "To speak with your squad during group video calls."
+        VIDEO_API_URL: "https://uma-group-calling.onrender.com"
         UILaunchScreen:
           UIColorName: ""
         UIApplicationSceneManifest:
@@ -60,6 +63,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.uma.UmaTests
+        GENERATE_INFOPLIST_FILE: "YES"
 
 schemes:
   Uma:

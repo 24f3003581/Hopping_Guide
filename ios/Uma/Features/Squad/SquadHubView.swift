@@ -10,6 +10,7 @@ struct SquadHubView: View {
     @State private var newSquadName: String = "My Squad"
     @State private var navigateToChat = false
     @State private var navigateToDetail: SquadMember?
+    @State private var showVideoCall = false
 
     var body: some View {
         NavigationStack {
@@ -28,6 +29,10 @@ struct SquadHubView: View {
             .navigationDestination(isPresented: $navigateToChat) {
                 SquadChatView(squadId: env.squad.currentCode ?? "",
                               squadName: env.squad.currentName ?? "")
+            }
+            .fullScreenCover(isPresented: $showVideoCall) {
+                GroupVideoCallView(squadId: env.squad.currentCode ?? "squad",
+                                   squadName: env.squad.currentName ?? "Squad")
             }
             .sheet(isPresented: $showCreateSheet) {
                 createSheet
@@ -84,6 +89,7 @@ struct SquadHubView: View {
     private var content: some View {
         VStack(spacing: 14) {
             identityCard
+            videoCallCard
             settingsCard
             membersCard
             chatCard
@@ -96,6 +102,42 @@ struct SquadHubView: View {
             .buttonStyle(.plain)
             .padding(.top, 4)
         }
+    }
+
+    private var videoCallCard: some View {
+        Button(action: { showVideoCall = true }) {
+            HStack(spacing: 14) {
+                ZStack {
+                    LinearGradient(
+                        colors: [Color.green.opacity(0.85), Color.teal],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                    .frame(width: 48, height: 48)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    Image(systemName: "video.fill")
+                        .foregroundStyle(.white)
+                        .font(.system(size: 20))
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Group Video Call")
+                        .font(PujaTypography.rounded(15, weight: .bold))
+                    Text("Live calling with squad · End call controls")
+                        .font(PujaTypography.rounded(11))
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .foregroundStyle(.secondary)
+            }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(.background)
+                    .shadow(color: .black.opacity(0.05), radius: 8, y: 2)
+            )
+        }
+        .buttonStyle(.plain)
     }
 
     private var identityCard: some View {

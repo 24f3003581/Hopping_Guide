@@ -6,11 +6,20 @@ import SwiftUI
 
 final class PandalAnnotation: NSObject, MKAnnotation {
     let pandal: Pandal
+    let stopNumber: Int?
     var coordinate: CLLocationCoordinate2D { pandal.coordinate }
-    var title: String? { pandal.name }
+    var title: String? {
+        if let num = stopNumber {
+            return "#\(num) \(pandal.name)"
+        }
+        return pandal.name
+    }
     var subtitle: String? { pandal.zone.label }
 
-    init(pandal: Pandal) { self.pandal = pandal }
+    init(pandal: Pandal, stopNumber: Int? = nil) {
+        self.pandal = pandal
+        self.stopNumber = stopNumber
+    }
 }
 
 final class MetroAnnotation: NSObject, MKAnnotation {
@@ -37,7 +46,7 @@ final class SquadMemberAnnotation: NSObject, MKAnnotation {
     init(member: SquadMember) { self.member = member }
 }
 
-/// Custom annotation view — teardrop pin with gold outline, "selected" pulse.
+/// Custom annotation view — teardrop pin with gold outline, stop numbering, and priority layering atop stations.
 final class PandalAnnotationView: MKAnnotationView {
     static let reuseId = "PandalAnnotationView"
 
@@ -46,23 +55,43 @@ final class PandalAnnotationView: MKAnnotationView {
         self.canShowCallout = false
         self.collisionMode = .circle
         self.centerOffset = CGPoint(x: 0, y: -14)
-        self.frame = CGRect(x: 0, y: 0, width: 30, height: 38)
+        self.frame = CGRect(x: 0, y: 0, width: 32, height: 40)
+        // High zPriority ensures numbered festival pins layer atop station pins
+        self.zPriority = MKAnnotationViewZPriority(rawValue: 1000)
     }
     required init?(coder aDecoder: NSCoder) { fatalError() }
 
     override func prepareForDisplay() {
         super.prepareForDisplay()
-        guard annotation is PandalAnnotation else { return }
-        let pin = PandalPinShape()
-            .fill(PujaColors.durgaRed)
-            .overlay(
-                PandalPinShape()
-                    .stroke(PujaColors.festivalGold, lineWidth: 1.6)
-            )
+        guard let pAnno = annotation as? PandalAnnotation else { return }
+
+        let stopNum = pAnno.stopNumber
+        self.zPriority = stopNum != nil
+            ? MKAnnotationViewZPriority(rawValue: 1000)
+            : MKAnnotationViewZPriority(rawValue: 800)
+        self.displayPriority = stopNum != nil ? .required : .defaultHigh
+
+        let pinView = ZStack {
+            PandalPinShape()
+                .fill(PujaColors.durgaRed)
+                .overlay(
+                    PandalPinShape()
+                        .stroke(PujaColors.festivalGold, lineWidth: 1.8)
+                )
+
+            if let num = stopNum {
+                Text("\(num)")
+                    .font(.system(size: 13, weight: .black, design: .rounded))
+                    .foregroundStyle(PujaColors.goldBright)
+                    .offset(y: -4)
+            }
+        }
+        .frame(width: 32, height: 40)
+
         Task { @MainActor in
-            let renderer = ImageRenderer(content: pin.frame(width: 30, height: 38))
+            let renderer = ImageRenderer(content: pinView)
             renderer.scale = UIScreen.main.scale
-            renderer.proposedSize = .init(width: 30, height: 38)
+            renderer.proposedSize = .init(width: 32, height: 40)
             if let img = renderer.uiImage {
                 self.image = img
             }

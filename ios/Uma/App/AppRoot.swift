@@ -4,43 +4,75 @@ import SwiftUI
 
 struct AppRoot: View {
     @Environment(AppEnvironment.self) private var env
+    @State private var mountedTabs: Set<AppTab> = [.map]
 
     var body: some View {
         if !env.hasOnboarded {
             WelcomeView()
         } else {
             TabView(selection: tabBinding) {
+                // Map is always kept mounted for immediate startup readiness and deep linking
                 MapTabView()
                     .tabItem {
                         Label("Map", image: "durga_eyes")
                     }
                     .tag(AppTab.map)
 
-                PandalsListView()
-                    .tabItem {
-                        Label("Pandals", image: "durga_face")
+                Group {
+                    if mountedTabs.contains(.pandals) {
+                        PandalsListView()
+                    } else {
+                        Color.clear
                     }
-                    .tag(AppTab.pandals)
+                }
+                .tabItem {
+                    Label("Pandals", image: "durga_face")
+                }
+                .tag(AppTab.pandals)
 
-                RoutesView()
-                    .tabItem {
-                        Label("Routes", image: "ashtabhuja_variant")
+                Group {
+                    if mountedTabs.contains(.routes) {
+                        RoutesView()
+                    } else {
+                        Color.clear
                     }
-                    .tag(AppTab.routes)
+                }
+                .tabItem {
+                    Label("Routes", image: "ashtabhuja_variant")
+                }
+                .tag(AppTab.routes)
 
-                SquadHubView()
-                    .tabItem {
-                        Label("Squads", image: "dhaki")
+                Group {
+                    if mountedTabs.contains(.squads) {
+                        SquadHubView()
+                    } else {
+                        Color.clear
                     }
-                    .tag(AppTab.squads)
+                }
+                .tabItem {
+                    Label("Squads", image: "dhaki")
+                }
+                .tag(AppTab.squads)
 
-                HelplinesView()
-                    .tabItem {
-                        Label("Helpline", image: "trishul_eyes")
+                Group {
+                    if mountedTabs.contains(.helplines) {
+                        HelplinesView()
+                    } else {
+                        Color.clear
                     }
-                    .tag(AppTab.helplines)
+                }
+                .tabItem {
+                    Label("Helpline", image: "trishul_eyes")
+                }
+                .tag(AppTab.helplines)
             }
             .tint(PujaColors.durgaRed)
+            .onAppear {
+                mountedTabs.insert(env.selectedTab)
+            }
+            .onChange(of: env.selectedTab) { _, newTab in
+                mountedTabs.insert(newTab)
+            }
         }
     }
 

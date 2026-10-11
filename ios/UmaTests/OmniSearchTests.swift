@@ -36,10 +36,10 @@ final class OmniSearchTests: XCTestCase {
         [
             FoodSpot(id: "f1", name: "Golbari", type: "Kosha Mangsho",
                      lat: 22.601, lng: 88.370, nearbyPandal: "Shyambazar",
-                     mustTry: "Kasha Mangsho", priceRange: "₹₹", rating: 4.4),
+                     rating: 4.4, mustTry: "Kasha Mangsho", priceRange: "₹₹"),
             FoodSpot(id: "f2", name: "Mitra Cafe", type: "Heritage Snacks",
                      lat: 22.599, lng: 88.371, nearbyPandal: "Shyambazar",
-                     mustTry: "Fish Fry", priceRange: "₹₹", rating: 4.5),
+                     rating: 4.5, mustTry: "Fish Fry", priceRange: "₹₹"),
         ]
     }
 

@@ -22,6 +22,12 @@
 	<string>1</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>To show your location and walking routes on the map.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>To share video during squad group video calls.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>To speak with your squad during group video calls.</string>
+	<key>VIDEO_API_URL</key>
+	<string>https://uma-group-calling.onrender.com</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

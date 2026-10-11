@@ -30,7 +30,44 @@ struct PandalsListView: View {
     @State private var searchText: String = ""
     @State private var detailPandal: Pandal?
 
+    // Performance cache: avoid re-sorting on compass ticks & cache haversine per pass
+    @State private var cachedCoordinate: CLLocationCoordinate2D?
+    @State private var distanceMap: [String: Double] = [:]
+    @State private var cachedList: [Pandal] = []
+    @State private var lastSort: PandalSortOption?
+    @State private var lastZone: KolkataZone?
+    @State private var lastSearch: String?
+
     var filtered: [Pandal] {
+        let currentCoord = env.location.lastCoordinate
+        let isCoordChanged: Bool
+        if let current = currentCoord, let last = cachedCoordinate {
+            isCoordChanged = haversineMeters(current, last) > 20.0
+        } else {
+            isCoordChanged = (currentCoord != nil) != (cachedCoordinate != nil)
+        }
+
+        let isFilterChanged = (sort != lastSort) || (zoneFilter != lastZone) || (searchText != lastSearch)
+
+        if !isCoordChanged && !isFilterChanged && !cachedList.isEmpty {
+            return cachedList
+        }
+
+        // Recompute distance map at most once per filter/sort pass on genuine coordinate displacement
+        if isCoordChanged || distanceMap.isEmpty {
+            var newMap: [String: Double] = [:]
+            if let userCoord = currentCoord {
+                for p in env.pandals.allPandals {
+                    newMap[p.id] = haversineMeters(userCoord, p.coordinate)
+                }
+            }
+            // State updates happen during computation
+            Task { @MainActor in
+                self.distanceMap = newMap
+                self.cachedCoordinate = currentCoord
+            }
+        }
+
         var list = env.pandals.allPandals
         if let z = zoneFilter { list = list.filter { $0.zone == z } }
         if !searchText.isEmpty {
@@ -41,13 +78,19 @@ struct PandalsListView: View {
                 || ($0.nearestMetro ?? "").lowercased().contains(q)
             }
         }
+
         switch sort {
-        case .default:           break
+        case .default:
+            break
         case .nearestFirst:
-            if let c = env.location.lastCoordinate {
-                list = PandalSpatialCluster.sortByDistance(list, from: c)
+            let dMap = distanceMap
+            list.sort { a, b in
+                let da = dMap[a.id] ?? Double.infinity
+                let db = dMap[b.id] ?? Double.infinity
+                return da < db
             }
-        case .ratingHighToLow:   list = PandalSpatialCluster.sortByRating(list)
+        case .ratingHighToLow:
+            list = PandalSpatialCluster.sortByRating(list)
         case .lowCrowdFirst:
             list.sort { (a, b) in
                 let ca = (a.crowdLevel?.lowercased() == "high") ? 3
@@ -57,6 +100,14 @@ struct PandalsListView: View {
                 return ca < cb
             }
         }
+
+        Task { @MainActor in
+            self.cachedList = list
+            self.lastSort = sort
+            self.lastZone = zoneFilter
+            self.lastSearch = searchText
+        }
+
         return list
     }
 

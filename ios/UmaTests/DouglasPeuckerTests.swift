@@ -20,8 +20,10 @@ final class DouglasPeuckerTests: XCTestCase {
                                    longitude: 88.3 + cos(Double(i) * 0.1) * 0.01)
         }
         let simplified = simplifyRoute(points, tolerance: 0.0001)
-        XCTAssertEqual(simplified.first, points.first)
-        XCTAssertEqual(simplified.last, points.last)
+        XCTAssertEqual(simplified.first?.latitude, points.first?.latitude)
+        XCTAssertEqual(simplified.first?.longitude, points.first?.longitude)
+        XCTAssertEqual(simplified.last?.latitude, points.last?.latitude)
+        XCTAssertEqual(simplified.last?.longitude, points.last?.longitude)
         XCTAssertLessThan(simplified.count, points.count)
     }
 
