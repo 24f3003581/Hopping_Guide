@@ -28,6 +28,7 @@
 		2B367C1F09BA6997FBCA4961 /* PandalRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57AE63C90CE9F8E492AC3691 /* PandalRepository.swift */; };
 		2B368F1EBFE5DCF4C8446389 /* PandalsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 813D56B947911E78226CD2AC /* PandalsListView.swift */; };
 		2C94E4ADF8BC21A000D6927A /* MetroStation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A460F00CD1A62FB197927E4 /* MetroStation.swift */; };
+		2EF268FB913B408C8EFC4F59 /* StreamVideo in Frameworks */ = {isa = PBXBuildFile; productRef = 03D186B7DD24A50519387753 /* StreamVideo */; };
 		2FAC76D986936F191BC988C4 /* SquadService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 325312440661DBCC56E8982A /* SquadService.swift */; };
 		33CB91E109DEF43CF19DACA5 /* HaversineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FE5C48A54BB9C2751F37EE2 /* HaversineTests.swift */; };
 		362ADF309D5176E5D77FEDE7 /* ChatMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6295934639F8E998CB3DFF26 /* ChatMessage.swift */; };
@@ -67,8 +68,10 @@
 		6C5823AC6DEC8EF8556CBEF8 /* GroupVideoApiTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91CEF6289AF224298180AF66 /* GroupVideoApiTests.swift */; };
 		7077B7469B16D8CA2E3CB8EA /* LiquidGlass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 199B96BADE2FFBE0CA32F7E0 /* LiquidGlass.swift */; };
 		70F273C27ED527071B06DF61 /* RoutingCoalescingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3F5DF3C8D6C329F6A3B6B2D /* RoutingCoalescingTests.swift */; };
+		7482DF8407AE80A71084B008 /* StreamVideoSwiftUI in Frameworks */ = {isa = PBXBuildFile; productRef = E9B97AAE948ABD5148603447 /* StreamVideoSwiftUI */; };
 		778CDD8EC49742856AC36192 /* events.json in Resources */ = {isa = PBXBuildFile; fileRef = B1E9DE18DFB1AC30069AA877 /* events.json */; };
 		78DE0417BD01877AF87D09EB /* dhaki.png in Resources */ = {isa = PBXBuildFile; fileRef = 38244BD1CF365F633C8EAD29 /* dhaki.png */; };
+		7A07EB76A3D4CFF6E2F52229 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 36F5A5CB29732E8C38B5628A /* FirebaseAuth */; };
 		7C8DFEF5688CAEAF26371D21 /* toilets.json in Resources */ = {isa = PBXBuildFile; fileRef = 78890156B500053412CE0009 /* toilets.json */; };
 		7E8BCFB7714099CE938E9576 /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA93A3B2A1892920539A2479 /* WelcomeView.swift */; };
 		863C1A9483BFF3F953CC5BAC /* ChatService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2E49473B8B5E27A04C2B491 /* ChatService.swift */; };
@@ -87,6 +90,8 @@
 		A94A43EE1A6A1C8021E80521 /* trishul_eyes_gold.png in Resources */ = {isa = PBXBuildFile; fileRef = DDF67E2759F89F99827E4632 /* trishul_eyes_gold.png */; };
 		AA98410A17963DFCE1D13C7E /* ashtabhuja_devi.png in Resources */ = {isa = PBXBuildFile; fileRef = 3B6DBC411CFEF7D8F7B537B8 /* ashtabhuja_devi.png */; };
 		AD96A938442B378BFABCFACF /* PandalSpatialCluster.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF6EFEB1D25CFCCAB96046EB /* PandalSpatialCluster.swift */; };
+		B249F9C5DB7CFE39CB0EBC4C /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = C1BB51A4ACE9648FD8A9F774 /* FirebaseCore */; };
+		B29CD3553D7E5498DD084094 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = B23BBFAD215C833943CB4076 /* FirebaseFirestore */; };
 		B2EBC9AF4B9CC265969135EA /* MapFloatingControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBFE963632694CF6C6256391 /* MapFloatingControls.swift */; };
 		B7A8716F2B5B4FF95D188697 /* OmniSearchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF14099A1C0E740BD8CA8C6A /* OmniSearchService.swift */; };
 		B8C08333213EDCED1AB9C972 /* kalash_gold.png in Resources */ = {isa = PBXBuildFile; fileRef = 6CAA97AAFD820FF30F4B60F6 /* kalash_gold.png */; };
@@ -240,6 +245,21 @@
 		F6C58F5C939C7F307712BE37 /* ToiletRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToiletRepository.swift; sourceTree = "<group>"; };
 		F7B558AA6794EA2CFBD58DB3 /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haptics.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		5BA0DD6C84E70B92BB2EA937 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7A07EB76A3D4CFF6E2F52229 /* FirebaseAuth in Frameworks */,
+				B249F9C5DB7CFE39CB0EBC4C /* FirebaseCore in Frameworks */,
+				B29CD3553D7E5498DD084094 /* FirebaseFirestore in Frameworks */,
+				2EF268FB913B408C8EFC4F59 /* StreamVideo in Frameworks */,
+				7482DF8407AE80A71084B008 /* StreamVideoSwiftUI in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		0F284EA286F8CF25306DAF80 /* Map */ = {
@@ -520,6 +540,7 @@
 			buildPhases = (
 				099B7E88029F953436FCC1C0 /* Sources */,
 				44BEFEF3D22335AD5BECB5FE /* Resources */,
+				5BA0DD6C84E70B92BB2EA937 /* Frameworks */,
 			);
 			buildRules = (
 			);
@@ -527,6 +548,11 @@
 			);
 			name = Uma;
 			packageProductDependencies = (
+				36F5A5CB29732E8C38B5628A /* FirebaseAuth */,
+				C1BB51A4ACE9648FD8A9F774 /* FirebaseCore */,
+				B23BBFAD215C833943CB4076 /* FirebaseFirestore */,
+				03D186B7DD24A50519387753 /* StreamVideo */,
+				E9B97AAE948ABD5148603447 /* StreamVideoSwiftUI */,
 			);
 			productName = Uma;
 			productReference = 3B101BB86EF4A37A0211DFBD /* Uma.app */;
@@ -574,6 +600,10 @@
 			);
 			mainGroup = 2664788A94AA0A97DC8D47DC;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				E6A5F91243A842CEA3D9B4CE /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				332F85B84BDF1F040306C78C /* XCRemoteSwiftPackageReference "stream-video-swift" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 70F153EA2A06DAD4E41E5507 /* Products */;
 			projectDirPath = "";
@@ -965,6 +995,53 @@
 			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		332F85B84BDF1F040306C78C /* XCRemoteSwiftPackageReference "stream-video-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/GetStream/stream-video-swift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.40.0;
+			};
+		};
+		E6A5F91243A842CEA3D9B4CE /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		03D186B7DD24A50519387753 /* StreamVideo */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 332F85B84BDF1F040306C78C /* XCRemoteSwiftPackageReference "stream-video-swift" */;
+			productName = StreamVideo;
+		};
+		36F5A5CB29732E8C38B5628A /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E6A5F91243A842CEA3D9B4CE /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		B23BBFAD215C833943CB4076 /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E6A5F91243A842CEA3D9B4CE /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+		C1BB51A4ACE9648FD8A9F774 /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E6A5F91243A842CEA3D9B4CE /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+		E9B97AAE948ABD5148603447 /* StreamVideoSwiftUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 332F85B84BDF1F040306C78C /* XCRemoteSwiftPackageReference "stream-video-swift" */;
+			productName = StreamVideoSwiftUI;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 17E99B157F41F906579BFBB1 /* Project object */;
 }

@@ -5,6 +5,18 @@ import SwiftUI
 import MapKit
 import CoreLocation
 
+struct MapCameraRequest: Identifiable {
+    enum Action {
+        case zoomIn
+        case zoomOut
+        case center(CLLocationCoordinate2D)
+        case region(MKCoordinateRegion)
+    }
+
+    let id = UUID()
+    let action: Action
+}
+
 struct MapView: UIViewRepresentable {
     @Binding var selectedPandal: Pandal?
     @Binding var highlightedRoute: WalkingRoute?
@@ -16,6 +28,7 @@ struct MapView: UIViewRepresentable {
     var showMetroStations: Bool
     var followUser: Bool
     var userLocation: CLLocationCoordinate2D?
+    var cameraRequest: MapCameraRequest? = nil
     var activeTrail: ActiveCustomTrail? = nil
     var onTapPandal: (Pandal) -> Void
     var onTapMetro: ((MetroStation) -> Void)? = nil
@@ -61,8 +74,14 @@ struct MapView: UIViewRepresentable {
         if followUser, let user = userLocation {
             map.setCenter(user, animated: true)
         }
-        if let sel = selectedPandal {
+        if let sel = selectedPandal, sel.id != context.coordinator.lastSelectedPandalId {
             map.setCenter(sel.coordinate, animated: true)
+            context.coordinator.lastSelectedPandalId = sel.id
+        } else if selectedPandal == nil {
+            context.coordinator.lastSelectedPandalId = nil
+        }
+        if let cameraRequest, cameraRequest.id != context.coordinator.lastCameraRequestId {
+            context.coordinator.apply(cameraRequest, to: map)
         }
     }
 
@@ -74,8 +93,37 @@ struct MapView: UIViewRepresentable {
         private var lastMetroIds: Set<String> = []
         private var lastFoodIds: Set<String> = []
         private var lastSquadIds: Set<String> = []
+        private var lastRoute: WalkingRoute?
+        private var hasSyncedRoute = false
+        fileprivate var lastSelectedPandalId: String?
+        fileprivate var lastCameraRequestId: UUID?
 
         init(_ parent: MapView) { self.parent = parent }
+
+        func apply(_ request: MapCameraRequest, to map: MKMapView) {
+            lastCameraRequestId = request.id
+            switch request.action {
+            case .zoomIn:
+                zoom(map, factor: 0.72)
+            case .zoomOut:
+                zoom(map, factor: 1.0 / 0.72)
+            case .center(let coordinate):
+                map.setCenter(coordinate, animated: true)
+            case .region(let region):
+                map.setRegion(region, animated: true)
+            }
+        }
+
+        private func zoom(_ map: MKMapView, factor: CLLocationDegrees) {
+            let current = map.region
+            let latitudeDelta = min(1.2, max(0.002, current.span.latitudeDelta * factor))
+            let longitudeDelta = min(1.2, max(0.002, current.span.longitudeDelta * factor))
+            let region = MKCoordinateRegion(
+                center: current.center,
+                span: MKCoordinateSpan(latitudeDelta: latitudeDelta,
+                                       longitudeDelta: longitudeDelta))
+            map.setRegion(region, animated: true)
+        }
 
         func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
             if annotation is MKUserLocation { return nil }
@@ -201,15 +249,38 @@ struct MapView: UIViewRepresentable {
                 lastFoodIds = foodIds
             }
             if squadIds != lastSquadIds {
-                let existing = map.annotations.compactMap { $0 as? SquadMemberAnnotation }
-                map.removeAnnotations(existing)
-                let annos = parent.squadMembers.map { SquadMemberAnnotation(member: $0) }
-                map.addAnnotations(annos)
-                lastSquadIds = squadIds
+                syncSquadAnnotations(map, members: parent.squadMembers)
+            } else if !parent.squadMembers.isEmpty {
+                syncSquadAnnotations(map, members: parent.squadMembers)
             }
         }
 
+        private func syncSquadAnnotations(_ map: MKMapView, members: [SquadMember]) {
+            let existing = map.annotations.compactMap { $0 as? SquadMemberAnnotation }
+            let annotationsById = Dictionary(uniqueKeysWithValues: existing.map { ($0.member.id, $0) })
+            let membersById = Dictionary(uniqueKeysWithValues: members.map { ($0.id, $0) })
+
+            for annotation in existing {
+                guard let updatedMember = membersById[annotation.member.id] else {
+                    map.removeAnnotation(annotation)
+                    continue
+                }
+                guard annotation.member != updatedMember else { continue }
+                annotation.member = updatedMember
+                map.view(for: annotation)?.image = SquadMemberIcon.image(for: updatedMember)
+            }
+
+            let newAnnotations = members
+                .filter { annotationsById[$0.id] == nil }
+                .map(SquadMemberAnnotation.init(member:))
+            if !newAnnotations.isEmpty { map.addAnnotations(newAnnotations) }
+            lastSquadIds = Set(members.map(\.id))
+        }
+
         func syncOverlays(_ map: MKMapView, route: WalkingRoute?) {
+            guard !hasSyncedRoute || route != lastRoute else { return }
+            hasSyncedRoute = true
+            lastRoute = route
             map.removeOverlays(map.overlays)
             guard let route, route.points.count >= 2 else { return }
             // Glow halo

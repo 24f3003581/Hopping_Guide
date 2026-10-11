@@ -2,6 +2,36 @@
 
 import Foundation
 import Observation
+import FirebaseAuth
+import FirebaseCore
+
+struct FirebaseUserIdentity: Sendable {
+    let uid: String
+    let displayName: String
+    let idToken: String
+}
+
+enum FirebaseSetupError: LocalizedError {
+    case missingConfiguration
+    case signInFailed
+
+    var errorDescription: String? {
+        switch self {
+        case .missingConfiguration:
+            return "Firebase is not configured for this iOS app. Add the Firebase iOS app configuration to enable squads and video calls."
+        case .signInFailed:
+            return "Could not sign in to Firebase. Check your connection and try again."
+        }
+    }
+}
+
+enum FirebaseStartup {
+    static func configureIfAvailable() {
+        guard FirebaseApp.app() == nil,
+              Bundle.main.url(forResource: "GoogleService-Info", withExtension: "plist") != nil else { return }
+        FirebaseApp.configure()
+    }
+}
 
 @MainActor
 @Observable
@@ -12,6 +42,7 @@ final class UserStateService {
     private(set) var favoriteIds: Set<String> = []
     private(set) var currentUserName: String = "Pujo Hopper"
     private(set) var isGuest: Bool = true
+    private(set) var firebaseSetupMessage: String?
 
     private let visitedKey = "uma.visitedPandalIds"
     private let favoriteKey = "uma.favoritePandalIds"
@@ -56,6 +87,43 @@ final class UserStateService {
         defaults().set(true, forKey: guestKey)
     }
 
+    var firebaseUserId: String? { Auth.authIfConfigured?.currentUser?.uid }
+
+    func prepareFirebaseSession() async {
+        do {
+            _ = try await ensureFirebaseIdentity()
+            firebaseSetupMessage = nil
+        } catch {
+            firebaseSetupMessage = error.localizedDescription
+        }
+    }
+
+    func ensureFirebaseIdentity() async throws -> FirebaseUserIdentity {
+        guard FirebaseApp.app() != nil else { throw FirebaseSetupError.missingConfiguration }
+
+        let auth = Auth.auth()
+        let user: FirebaseAuth.User
+        if let existing = auth.currentUser {
+            user = existing
+        } else {
+            user = try await auth.signInAnonymously().user
+        }
+
+        let displayName = currentUserName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !displayName.isEmpty, user.displayName != displayName {
+            let profile = user.createProfileChangeRequest()
+            profile.displayName = displayName
+            try? await profile.commitChanges()
+        }
+
+        let token = try await user.getIDToken()
+        return FirebaseUserIdentity(
+            uid: user.uid,
+            displayName: displayName.isEmpty ? "Pujo Hopper" : displayName,
+            idToken: token
+        )
+    }
+
     func setUserName(_ name: String) {
         currentUserName = name
         defaults().set(name, forKey: userKey)
@@ -63,6 +131,12 @@ final class UserStateService {
 
     private func defaults() -> UserDefaults { .standard }
     private func persist(_ key: String, value: [String]) { defaults().set(value, forKey: key) }
+}
+
+private extension Auth {
+    static var authIfConfigured: Auth? {
+        FirebaseApp.app() == nil ? nil : Auth.auth()
+    }
 }
 
 @MainActor

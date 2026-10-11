@@ -34,6 +34,13 @@ final class AppEnvironment {
         set { theme.mode = newValue }
     }
 
+    init() {
+        let squadService = squad
+        location.onUpdate = { [weak squadService] coordinate in
+            squadService?.updateUserLocation(coordinate)
+        }
+    }
+
     func loadBundles() {
         pandals.load()
         metros  // static

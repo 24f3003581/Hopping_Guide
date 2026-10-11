@@ -1,5 +1,5 @@
 // UmaTests/GroupVideoApiTests.swift
-// Tests GroupVideoApi URL resolution, fallback endpoints, and synthetic sessions
+// Tests GroupVideoApi URL resolution and the authenticated backend response shape.
 
 import XCTest
 @testable import Uma
@@ -16,11 +16,22 @@ final class GroupVideoApiTests: XCTestCase {
         XCTAssertTrue(api.effectiveBaseUrl.contains("onrender.com"))
     }
 
-    func testSyntheticSessionHasValidStructure() {
-        let session = GroupVideoApi.createSyntheticSession(squadId: "TEST12", userId: "hopper_1")
-        XCTAssertEqual(session.callId, "squad_TEST12")
+    func testDecodesSessionIssuedBySquadVideoBackend() throws {
+        let data = Data("""
+        {
+          "apiKey": "public-key",
+          "userId": "firebase-uid",
+          "callType": "uma_squad",
+          "callId": "squad_abc123",
+          "token": "server-issued-token",
+          "expiresIn": 300
+        }
+        """.utf8)
+
+        let session = try JSONDecoder().decode(GroupVideoSession.self, from: data)
+        XCTAssertEqual(session.userId, "firebase-uid")
+        XCTAssertEqual(session.callId, "squad_abc123")
         XCTAssertEqual(session.callType, "uma_squad")
-        XCTAssertFalse(session.apiKey.isEmpty)
-        XCTAssertFalse(session.token.isEmpty)
+        XCTAssertEqual(session.token, "server-issued-token")
     }
 }

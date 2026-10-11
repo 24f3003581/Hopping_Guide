@@ -1,4 +1,11 @@
 name: Uma
+packages:
+  Firebase:
+    url: https://github.com/firebase/firebase-ios-sdk.git
+    from: 12.0.0
+  StreamVideo:
+    url: https://github.com/GetStream/stream-video-swift.git
+    from: 1.40.0
 options:
   bundleIdPrefix: app.uma
   deploymentTarget:
@@ -40,6 +47,17 @@ targets:
         CFBundleDisplayName: Uma
         CFBundleShortVersionString: "1.0.0"
         CFBundleVersion: "1"
+    dependencies:
+      - package: Firebase
+        product: FirebaseAuth
+      - package: Firebase
+        product: FirebaseCore
+      - package: Firebase
+        product: FirebaseFirestore
+      - package: StreamVideo
+        product: StreamVideo
+      - package: StreamVideo
+        product: StreamVideoSwiftUI
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.uma.Uma
