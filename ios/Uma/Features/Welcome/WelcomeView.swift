@@ -239,7 +239,8 @@ struct WelcomeView: View {
             ? "Pujo Hopper"
             : name.trimmingCharacters(in: .whitespaces)
         Task {
-            try? await Task.sleep(nanoseconds: 600_000_000)
+            // Snappy greeting transition <= 200ms (reduced from legacy delays)
+            try? await Task.sleep(nanoseconds: 200_000_000)
             env.enterApp(as: cleanName)
         }
     }

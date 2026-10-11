@@ -25,8 +25,8 @@ final class AppEnvironment {
     let routing = RoutingService.shared
 
     // App-level navigation state
-    var selectedTab: AppTab = .welcome
-    var hasOnboarded: Bool = false
+    var selectedTab: AppTab = .map
+    var hasOnboarded: Bool = UserDefaults.standard.bool(forKey: "uma.hasOnboarded")
     var activeTrail: ActiveCustomTrail?
 
     var themeMode: ThemeService.Mode {
@@ -44,6 +44,7 @@ final class AppEnvironment {
 
     func enterApp(as name: String) {
         userState.signInGuest(name: name)
+        UserDefaults.standard.set(true, forKey: "uma.hasOnboarded")
         hasOnboarded = true
         selectedTab = .map
         Haptics.notifySuccess()

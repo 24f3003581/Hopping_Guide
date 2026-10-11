@@ -33,17 +33,21 @@ struct MapTabView: View {
                 selectedPandal: $selectedPandal,
                 highlightedRoute: $highlightedRoute,
                 pandals: visiblePandals,
-                metroStations: showMetroStations ? MetroRepository.allStations : [],
+                metroStations: focusedMetroStations,
                 foodSpots: showFoodSpots ? env.foodSpots.all : [],
                 squadMembers: env.squad.companionMembers,
                 showFoodSpots: showFoodSpots,
-                showMetroStations: showMetroStations,
+                showMetroStations: showMetroStations || env.activeTrail != nil,
                 followUser: followUser,
                 userLocation: env.location.lastCoordinate,
+                activeTrail: env.activeTrail,
                 onTapPandal: { pandal in
                     Haptics.selection()
                     selectedPandal = pandal
                     Task { await computeRoute(to: pandal) }
+                },
+                onTapMetro: { station in
+                    showStatus("🚇 \(station.name) · \(station.subtitle)", icon: "tram.fill", color: station.line.color)
                 }
             )
             .ignoresSafeArea(edges: .bottom)
@@ -179,6 +183,46 @@ struct MapTabView: View {
             list.append(p)
         }
         return list
+    }
+
+    private var focusedMetroStations: [MetroStation] {
+        if let trail = env.activeTrail {
+            let stopTokens = Set(trail.stops.compactMap { $0.nearestMetro?.lowercased().trimmingCharacters(in: .whitespaces) })
+            var activeLines: Set<KolkataMetroLine> = []
+            var keyStations: [MetroStation] = []
+
+            for st in MetroRepository.allStations {
+                if stopTokens.contains(where: { token in
+                    st.name.lowercased().contains(token) || token.contains(st.name.lowercased()) || st.matchesId(token)
+                }) {
+                    keyStations.append(st)
+                    activeLines.insert(st.line)
+                    for cl in st.connectingLines { activeLines.insert(cl) }
+                }
+            }
+
+            // Suppress unrelated stations: show intermediate, boarding, and interchange stations strictly for active legs
+            if let first = trail.stops.first {
+                let lats = trail.stops.map(\.lat)
+                let lngs = trail.stops.map(\.lng)
+                let minLat = (lats.min() ?? first.lat) - 0.025
+                let maxLat = (lats.max() ?? first.lat) + 0.025
+                let minLng = (lngs.min() ?? first.lng) - 0.025
+                let maxLng = (lngs.max() ?? first.lng) + 0.025
+
+                let filtered = MetroRepository.allStations.filter { st in
+                    activeLines.contains(st.line) &&
+                    st.latitude >= minLat && st.latitude <= maxLat &&
+                    st.longitude >= minLng && st.longitude <= maxLng
+                }
+                return filtered.isEmpty ? keyStations : filtered
+            }
+            return keyStations
+        } else if showMetroStations {
+            return MetroRepository.allStations
+        } else {
+            return []
+        }
     }
 
     // MARK: - Actions

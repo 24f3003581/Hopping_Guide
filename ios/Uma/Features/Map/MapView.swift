@@ -16,7 +16,9 @@ struct MapView: UIViewRepresentable {
     var showMetroStations: Bool
     var followUser: Bool
     var userLocation: CLLocationCoordinate2D?
+    var activeTrail: ActiveCustomTrail? = nil
     var onTapPandal: (Pandal) -> Void
+    var onTapMetro: ((MetroStation) -> Void)? = nil
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -101,7 +103,8 @@ struct MapView: UIViewRepresentable {
                 view.annotation = annotation
                 view.markerTintColor = UIColor(m.station.line.color)
                 view.glyphImage = UIImage(systemName: "tram.fill")
-                view.canShowCallout = false
+                view.canShowCallout = true
+                view.zPriority = MKAnnotationViewZPriority(rawValue: 500)
                 return view
             }
 
@@ -113,7 +116,8 @@ struct MapView: UIViewRepresentable {
                 view.annotation = annotation
                 view.markerTintColor = UIColor(red: 1.0, green: 0.57, blue: 0.0, alpha: 1)
                 view.glyphImage = UIImage(systemName: "fork.knife")
-                view.canShowCallout = false
+                view.canShowCallout = true
+                view.zPriority = MKAnnotationViewZPriority(rawValue: 400)
                 return view
             }
 
@@ -125,6 +129,7 @@ struct MapView: UIViewRepresentable {
                 view.image = SquadMemberIcon.image(for: s.member)
                 view.canShowCallout = false
                 view.centerOffset = .zero
+                view.zPriority = MKAnnotationViewZPriority(rawValue: 900)
                 return view
             }
 
@@ -135,8 +140,9 @@ struct MapView: UIViewRepresentable {
             if let p = view.annotation as? PandalAnnotation {
                 parent.onTapPandal(p.pandal)
             }
-            if let p = view.annotation as? MetroAnnotation {
+            if let m = view.annotation as? MetroAnnotation {
                 Haptics.selection()
+                parent.onTapMetro?(m.station)
             }
             if let p = view.annotation as? FoodSpotAnnotation {
                 Haptics.selection()
@@ -149,23 +155,37 @@ struct MapView: UIViewRepresentable {
             return cluster
         }
 
+        private var lastTrailId: String?
+
         func syncAnnotations(_ map: MKMapView) {
             let pandalIds = Set(parent.pandals.map(\.id))
             let metroIds = Set(parent.metroStations.map(\.id))
             let foodIds = Set(parent.foodSpots.map(\.id))
             let squadIds = Set(parent.squadMembers.map(\.id))
+            let currentTrailId = parent.activeTrail?.id
 
-            if pandalIds != lastPandalIds {
+            if pandalIds != lastPandalIds || currentTrailId != lastTrailId {
                 let existing = map.annotations.compactMap { $0 as? PandalAnnotation }
                 map.removeAnnotations(existing)
-                let annos = parent.pandals.map { PandalAnnotation(pandal: $0) }
+
+                var stopIndexMap: [String: Int] = [:]
+                if let trail = parent.activeTrail {
+                    for (idx, stop) in trail.stops.enumerated() {
+                        stopIndexMap[stop.id] = idx + 1
+                    }
+                }
+
+                let annos = parent.pandals.map {
+                    PandalAnnotation(pandal: $0, stopNumber: stopIndexMap[$0.id])
+                }
                 map.addAnnotations(annos)
                 lastPandalIds = pandalIds
+                lastTrailId = currentTrailId
             }
             if metroIds != lastMetroIds {
                 let existing = map.annotations.compactMap { $0 as? MetroAnnotation }
                 map.removeAnnotations(existing)
-                if parent.showMetroStations {
+                if parent.showMetroStations || parent.activeTrail != nil {
                     let annos = parent.metroStations.map { MetroAnnotation(station: $0) }
                     map.addAnnotations(annos)
                 }

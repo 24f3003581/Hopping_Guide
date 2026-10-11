@@ -2,8 +2,10 @@
 // Asserts that .glassEffect is gated by iOS 26+ availability throughout the codebase.
 
 import XCTest
+import SwiftUI
 @testable import Uma
 
+@MainActor
 final class LiquidGlassAvailabilityTests: XCTestCase {
     func test_liquidBackground_returnsValidView() {
         // Just verify the extension compiles and is callable. Behavioural check on iOS 18.

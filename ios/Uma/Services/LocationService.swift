@@ -11,6 +11,9 @@ final class LocationService: NSObject {
 
     private let manager = CLLocationManager()
     private(set) var lastCoordinate: CLLocationCoordinate2D?
+    private(set) var lastLocation: CLLocation?
+    private(set) var lastAccuracyMeters: Double?
+    private(set) var lastLocationTimestamp: Date?
     private(set) var lastHeading: Double = 0
     private(set) var authorizationStatus: CLAuthorizationStatus = .notDetermined
     private(set) var isTracking = false
@@ -48,9 +51,30 @@ final class LocationService: NSObject {
         isTracking = false
     }
 
+    /// Returns true if the latest GPS fix is strictly fresh (<= maxAge, default 10s)
+    /// and accurate (<= maxAccuracy, default 30m), rejecting noise and jitter.
+    func isFixValid(maxAge: TimeInterval = 10.0, maxAccuracy: Double = 30.0) -> Bool {
+        Self.isLocationValid(lastLocation, maxAge: maxAge, maxAccuracy: maxAccuracy)
+    }
+
+    /// Validates whether a CLLocation satisfies strict trail progress requirements.
+    nonisolated static func isLocationValid(_ location: CLLocation?, maxAge: TimeInterval = 10.0, maxAccuracy: Double = 30.0) -> Bool {
+        guard let location = location else { return false }
+        guard location.horizontalAccuracy >= 0 && location.horizontalAccuracy <= maxAccuracy else {
+            return false
+        }
+        let age = abs(location.timestamp.timeIntervalSinceNow)
+        return age <= maxAge
+    }
+
+    /// Determines if the current coordinate represents a genuine spatial displacement from a baseline.
+    func hasMeaningfulDisplacement(from previous: CLLocationCoordinate2D?, thresholdMeters: Double = 20.0) -> Bool {
+        guard let current = lastCoordinate else { return false }
+        guard let prev = previous else { return true }
+        return haversineMeters(current, prev) >= thresholdMeters
+    }
+
     /// Returns the most recent coordinate, or nil if unavailable.
-    /// (Apple's Core Location does not expose a synchronous single-shot API;
-    /// callers should rely on `lastCoordinate` updated via live tracking.)
     func currentPosition() -> CLLocationCoordinate2D? { lastCoordinate }
 }
 
@@ -63,7 +87,10 @@ extension LocationService: CLLocationManagerDelegate {
     nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let loc = locations.last else { return }
         Task { @MainActor in
+            self.lastLocation = loc
             self.lastCoordinate = loc.coordinate
+            self.lastAccuracyMeters = loc.horizontalAccuracy
+            self.lastLocationTimestamp = loc.timestamp
             self.onUpdate?(loc.coordinate)
         }
     }

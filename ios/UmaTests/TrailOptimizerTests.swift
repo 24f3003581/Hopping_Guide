@@ -45,7 +45,7 @@ final class TrailOptimizerTests: XCTestCase {
         }
         let exact = TrailOptimizer.solveExact(matrix)
         let bf = bruteForceBestOrder(matrix)
-        XCTAssertEqual(exact.order, bf.order, accuracy: 0.0001)
+        XCTAssertEqual(exact.order, bf.order)
         XCTAssertEqual(exact.totalDuration, bf.cost, accuracy: 0.0001)
     }
 
@@ -62,7 +62,7 @@ final class TrailOptimizerTests: XCTestCase {
         }
         let exact = TrailOptimizer.solveExact(matrix)
         let bf = bruteForceBestOrder(matrix)
-        XCTAssertEqual(exact.order, bf.order, accuracy: 0.0001)
+        XCTAssertEqual(exact.order, bf.order)
         XCTAssertEqual(exact.totalDuration, bf.cost, accuracy: 0.0001)
     }
 

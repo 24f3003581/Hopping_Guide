@@ -12,6 +12,7 @@ struct SquadChatView: View {
     @FocusState private var focused: Bool
 
     @State private var draft: [ChatMessage] = []
+    @State private var showVideoCall: Bool = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -22,10 +23,20 @@ struct SquadChatView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button(action: { showingPhotoFilter.toggle() }) {
-                    Image(systemName: showingPhotoFilter ? "photo.fill" : "photo")
+                HStack(spacing: 12) {
+                    Button(action: { showVideoCall = true }) {
+                        Image(systemName: "video.fill")
+                            .foregroundStyle(Color.green)
+                    }
+
+                    Button(action: { showingPhotoFilter.toggle() }) {
+                        Image(systemName: showingPhotoFilter ? "photo.fill" : "photo")
+                    }
                 }
             }
+        }
+        .fullScreenCover(isPresented: $showVideoCall) {
+            GroupVideoCallView(squadId: squadId, squadName: squadName)
         }
         .onAppear { refresh() }
         .onChange(of: env.chat.messages(for: squadId).count) { _, _ in refresh() }

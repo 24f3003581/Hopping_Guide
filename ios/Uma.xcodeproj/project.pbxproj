@@ -40,6 +40,7 @@
 		425A485C762127FE0DAE1FEE /* shankha.png in Resources */ = {isa = PBXBuildFile; fileRef = 0E9F488FCE39461BA6FD4F0E /* shankha.png */; };
 		44EB8937E17862AE6F52CD18 /* KolkataZone.swift in Sources */ = {isa = PBXBuildFile; fileRef = E401AAA8623C8B1543E15800 /* KolkataZone.swift */; };
 		477CFD0055FC8AD531F94C5A /* PandalCalloutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F7E031E311152164D78F4AB /* PandalCalloutView.swift */; };
+		47CECE1E75623681F8E940F6 /* GroupVideoCallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F10201F2F1F8C527B14C3D6 /* GroupVideoCallView.swift */; };
 		48026B16BE84C847D092A9DE /* PandalAnnotation.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD21D02B1168A12EC53F705D /* PandalAnnotation.swift */; };
 		48D21C1B114A579AB9B2B91A /* RoutesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3797D2AC593E22CEDF2CEF6A /* RoutesView.swift */; };
 		48F25ED42A033A0DF8F8069A /* PandalSpatialClusterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E7036EE2AF15F1855CA860C /* PandalSpatialClusterTests.swift */; };
@@ -63,7 +64,9 @@
 		68E579E94BE901923F569B50 /* HelplineRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03B305DEC620ECDC0A703DB1 /* HelplineRepository.swift */; };
 		6992B49C2D5A523542F4161F /* kalash.png in Resources */ = {isa = PBXBuildFile; fileRef = 2F48C2B1E7757537B48F7F11 /* kalash.png */; };
 		6BBA0D33EA2F48F34F24F7B6 /* kalash_crimson.png in Resources */ = {isa = PBXBuildFile; fileRef = 253DA0B609B5293CA68147D4 /* kalash_crimson.png */; };
+		6C5823AC6DEC8EF8556CBEF8 /* GroupVideoApiTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91CEF6289AF224298180AF66 /* GroupVideoApiTests.swift */; };
 		7077B7469B16D8CA2E3CB8EA /* LiquidGlass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 199B96BADE2FFBE0CA32F7E0 /* LiquidGlass.swift */; };
+		70F273C27ED527071B06DF61 /* RoutingCoalescingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3F5DF3C8D6C329F6A3B6B2D /* RoutingCoalescingTests.swift */; };
 		778CDD8EC49742856AC36192 /* events.json in Resources */ = {isa = PBXBuildFile; fileRef = B1E9DE18DFB1AC30069AA877 /* events.json */; };
 		78DE0417BD01877AF87D09EB /* dhaki.png in Resources */ = {isa = PBXBuildFile; fileRef = 38244BD1CF365F633C8EAD29 /* dhaki.png */; };
 		7C8DFEF5688CAEAF26371D21 /* toilets.json in Resources */ = {isa = PBXBuildFile; fileRef = 78890156B500053412CE0009 /* toilets.json */; };
@@ -77,6 +80,7 @@
 		93890C2216CDB73875C81591 /* durga_sun_trishul_gold.png in Resources */ = {isa = PBXBuildFile; fileRef = 602980E6545B9D5AF5FA882F /* durga_sun_trishul_gold.png */; };
 		9397745FC6B5A87576EC2696 /* bhog_sweets.png in Resources */ = {isa = PBXBuildFile; fileRef = 458E5800DC46E6041679CA68 /* bhog_sweets.png */; };
 		9F256807E13E8687553F054E /* RoutingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62C4FD0D93EFF01891C94E62 /* RoutingService.swift */; };
+		9F97B261DF8CB97FE192AA70 /* LocationFixValidationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF9F3FE3CD4D5B727C0ABD9A /* LocationFixValidationTests.swift */; };
 		A15F50A0B70539D8B4D7D490 /* Pandal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F2C945DB89A16456074D0CA /* Pandal.swift */; };
 		A171A539700B18A4B3290630 /* LiquidGlassAvailabilityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 482B6D5B84437ABE809ABF76 /* LiquidGlassAvailabilityTests.swift */; };
 		A7B2E91178B8EDFAAAA36B1F /* shankha_gold.png in Resources */ = {isa = PBXBuildFile; fileRef = 646B5F8997AF5EFF6BCD3FF2 /* shankha_gold.png */; };
@@ -107,6 +111,7 @@
 		EB5CCF5CC4A02B43AFCD95F6 /* dhak_drum.png in Resources */ = {isa = PBXBuildFile; fileRef = 62C35A21C6A1B72F26430CCA /* dhak_drum.png */; };
 		EB9B96E34A216362ED9DF780 /* MapSearchBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96FA1C62F5E1DEE9B5784E54 /* MapSearchBar.swift */; };
 		EC1CAB9D69C4299D6F8903F3 /* Toilet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AA8AA0CB7478396D7B80F3D /* Toilet.swift */; };
+		EEC2CDDC0DE3DB023EBF7500 /* GroupVideoApi.swift in Sources */ = {isa = PBXBuildFile; fileRef = D11CA548055C9EBCCCDD74DC /* GroupVideoApi.swift */; };
 		F2FBDA3726EAAED719B10E09 /* trishul_eyes.png in Resources */ = {isa = PBXBuildFile; fileRef = 8F639E2D459FC9EEA7901B92 /* trishul_eyes.png */; };
 		F365E97E0A1D107AB8F57F5F /* HelplinesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59DB382FF8DF22A921013691 /* HelplinesView.swift */; };
 		F7AA1A8B4F9B6AAF8D278AF5 /* MapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C8576B164B3BFF01F3F26FE /* MapView.swift */; };
@@ -176,6 +181,7 @@
 		654A4E90D66C7E0F9C6DF759 /* PujaSchedule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PujaSchedule.swift; sourceTree = "<group>"; };
 		65E9D342FB9CDBFBFD51D386 /* UmaApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UmaApp.swift; sourceTree = "<group>"; };
 		6CAA97AAFD820FF30F4B60F6 /* kalash_gold.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = kalash_gold.png; sourceTree = "<group>"; };
+		6F10201F2F1F8C527B14C3D6 /* GroupVideoCallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupVideoCallView.swift; sourceTree = "<group>"; };
 		6F380E388D0141C770E65251 /* SquadHubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SquadHubView.swift; sourceTree = "<group>"; };
 		7201C0515800C5E46598C04E /* ashtabhuja_devi_gold.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = ashtabhuja_devi_gold.png; sourceTree = "<group>"; };
 		745FEA082C4EC57F9D1DFA45 /* pandals.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = pandals.json; sourceTree = "<group>"; };
@@ -190,6 +196,7 @@
 		8FE5C48A54BB9C2751F37EE2 /* HaversineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HaversineTests.swift; sourceTree = "<group>"; };
 		9022B1C4F0604E686FD1277C /* UserStateService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserStateService.swift; sourceTree = "<group>"; };
 		903A18BC8842EF88CA4E4548 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		91CEF6289AF224298180AF66 /* GroupVideoApiTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupVideoApiTests.swift; sourceTree = "<group>"; };
 		93706E05A4AAF1B75531AF4A /* trishul_diya_gold.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = trishul_diya_gold.png; sourceTree = "<group>"; };
 		96FA1C62F5E1DEE9B5784E54 /* MapSearchBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapSearchBar.swift; sourceTree = "<group>"; };
 		9806205811F5AEA638F5AFE1 /* trishul_diya.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = trishul_diya.png; sourceTree = "<group>"; };
@@ -205,13 +212,16 @@
 		BBFE963632694CF6C6256391 /* MapFloatingControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapFloatingControls.swift; sourceTree = "<group>"; };
 		BC189AF918B3FC011883762F /* durga_eyes.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = durga_eyes.png; sourceTree = "<group>"; };
 		BD21D02B1168A12EC53F705D /* PandalAnnotation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PandalAnnotation.swift; sourceTree = "<group>"; };
+		C3F5DF3C8D6C329F6A3B6B2D /* RoutingCoalescingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutingCoalescingTests.swift; sourceTree = "<group>"; };
 		C8DBD08AD8E8E6B3F9EA6C68 /* gada_gold.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = gada_gold.png; sourceTree = "<group>"; };
 		CA93A3B2A1892920539A2479 /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
 		CD10E8F010A513FFBDFCEC5D /* helplines.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = helplines.json; sourceTree = "<group>"; };
 		CF6B37FBC604083E2DFC0CB6 /* dhunuchi_priest_crimson.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = dhunuchi_priest_crimson.png; sourceTree = "<group>"; };
 		CF7592CC3C3E21E1C962D731 /* ashtabhuja_variant_gold.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = ashtabhuja_variant_gold.png; sourceTree = "<group>"; };
+		D11CA548055C9EBCCCDD74DC /* GroupVideoApi.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupVideoApi.swift; sourceTree = "<group>"; };
 		D3694A74C7D181CFB3FBEA48 /* FoodSpot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodSpot.swift; sourceTree = "<group>"; };
 		DDF67E2759F89F99827E4632 /* trishul_eyes_gold.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = trishul_eyes_gold.png; sourceTree = "<group>"; };
+		DF9F3FE3CD4D5B727C0ABD9A /* LocationFixValidationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationFixValidationTests.swift; sourceTree = "<group>"; };
 		E06A668E7C23A80F90CE81A0 /* HoppingRoute.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HoppingRoute.swift; sourceTree = "<group>"; };
 		E3A3DCDC12BCABE3D977C3F1 /* durga_eyes_crimson.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = durga_eyes_crimson.png; sourceTree = "<group>"; };
 		E401AAA8623C8B1543E15800 /* KolkataZone.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KolkataZone.swift; sourceTree = "<group>"; };
@@ -372,6 +382,7 @@
 			isa = PBXGroup;
 			children = (
 				A2E49473B8B5E27A04C2B491 /* ChatService.swift */,
+				D11CA548055C9EBCCCDD74DC /* GroupVideoApi.swift */,
 				45CAC1CC3F863173277B5A7E /* LocationService.swift */,
 				EF14099A1C0E740BD8CA8C6A /* OmniSearchService.swift */,
 				62C4FD0D93EFF01891C94E62 /* RoutingService.swift */,
@@ -408,10 +419,13 @@
 			isa = PBXGroup;
 			children = (
 				E79D439ED2B2EDB366A2873F /* DouglasPeuckerTests.swift */,
+				91CEF6289AF224298180AF66 /* GroupVideoApiTests.swift */,
 				8FE5C48A54BB9C2751F37EE2 /* HaversineTests.swift */,
 				482B6D5B84437ABE809ABF76 /* LiquidGlassAvailabilityTests.swift */,
+				DF9F3FE3CD4D5B727C0ABD9A /* LocationFixValidationTests.swift */,
 				5FE0472BDC69481048F3565C /* OmniSearchTests.swift */,
 				3E7036EE2AF15F1855CA860C /* PandalSpatialClusterTests.swift */,
+				C3F5DF3C8D6C329F6A3B6B2D /* RoutingCoalescingTests.swift */,
 				115C0ADE9DA8139E76793EC4 /* TrailOptimizerTests.swift */,
 			);
 			path = UmaTests;
@@ -420,6 +434,7 @@
 		D457AAB11FFB2FEF1BB73F09 /* Squad */ = {
 			isa = PBXGroup;
 			children = (
+				6F10201F2F1F8C527B14C3D6 /* GroupVideoCallView.swift */,
 				198A587AA1E7A9C9C0256A30 /* SquadChatView.swift */,
 				6F380E388D0141C770E65251 /* SquadHubView.swift */,
 			);
@@ -641,6 +656,8 @@
 				20671A4FCEE2E972F6C34458 /* DouglasPeucker.swift in Sources */,
 				61F5A8896A8C41E2F210333E /* FoodSpot.swift in Sources */,
 				5B2808CF84FFBE1859808AC5 /* FoodSpotRepository.swift in Sources */,
+				EEC2CDDC0DE3DB023EBF7500 /* GroupVideoApi.swift in Sources */,
+				47CECE1E75623681F8E940F6 /* GroupVideoCallView.swift in Sources */,
 				BD43C05C4B284ADC65EA5CEE /* Haptics.swift in Sources */,
 				0142DFE4C31939453B589BB1 /* Haversine.swift in Sources */,
 				5A0D77D9BFF71D97822716B0 /* Helpline.swift in Sources */,
@@ -690,10 +707,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				5C3A7B421DD63EE18624A45D /* DouglasPeuckerTests.swift in Sources */,
+				6C5823AC6DEC8EF8556CBEF8 /* GroupVideoApiTests.swift in Sources */,
 				33CB91E109DEF43CF19DACA5 /* HaversineTests.swift in Sources */,
 				A171A539700B18A4B3290630 /* LiquidGlassAvailabilityTests.swift in Sources */,
+				9F97B261DF8CB97FE192AA70 /* LocationFixValidationTests.swift in Sources */,
 				E4155FCB7EDD846D05A4C560 /* OmniSearchTests.swift in Sources */,
 				48F25ED42A033A0DF8F8069A /* PandalSpatialClusterTests.swift in Sources */,
+				70F273C27ED527071B06DF61 /* RoutingCoalescingTests.swift in Sources */,
 				14A9E1BD705EE3E94C4F81B7 /* TrailOptimizerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -713,6 +733,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -776,6 +797,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
