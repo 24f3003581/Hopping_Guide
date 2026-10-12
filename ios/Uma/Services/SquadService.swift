@@ -96,6 +96,9 @@ final class SquadService {
             "meetupLng": meetupLng,
             "separationThresholdMeters": Int(separationAlertMeters),
             "membersUid": [identity.uid],
+            "chosenPandals": [[String: Any]](),
+            "isHoppingActive": false,
+            "activeStopIndex": 0,
             "lastMessage": "Squad created. Welcome to Durga Puja hopping!",
             "lastMessageTime": Int(Date().timeIntervalSince1970 * 1000),
             "createdAt": FieldValue.serverTimestamp()
@@ -107,8 +110,12 @@ final class SquadService {
             text: "Welcome to \"\(cleanName)\"! Share meetup notes and pandal updates here.",
             timestamp: Date()
         )
-        batch.setData(Self.messageDocument(welcome), forDocument: squadRef.collection("messages").document(welcome.id))
         try await batch.commit()
+        // Android's rules authorize chat using committed membership (get),
+        // while member creation uses getAfter. Send notices after the batch.
+        // A failed optional notice must not hide a successfully created group.
+        try? await squadRef.collection("messages").document(welcome.id)
+            .setData(Self.messageDocument(welcome))
 
         applySquad([
             "squadCode": code, "name": cleanName,
@@ -158,8 +165,9 @@ final class SquadService {
             text: "👋 \(userName) joined the squad!",
             timestamp: Date()
         )
-        batch.setData(Self.messageDocument(joinMessage), forDocument: squadRef.collection("messages").document(joinMessage.id))
         try await batch.commit()
+        try? await squadRef.collection("messages").document(joinMessage.id)
+            .setData(Self.messageDocument(joinMessage))
 
         applySquad(data, id: document.documentID)
         currentUserId = identity.uid

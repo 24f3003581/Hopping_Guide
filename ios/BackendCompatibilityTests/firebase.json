@@ -1,6 +1,6 @@
 {
   "firestore": {
-    "rules": "firestore.rules"
+    "rules": "android-v1.0.0.firestore.rules"
   },
   "emulators": {
     "firestore": {

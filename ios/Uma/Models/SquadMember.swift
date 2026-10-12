@@ -1,6 +1,7 @@
 // SquadMember.swift — port of models/squad_member.dart
 
 import Foundation
+import CoreLocation
 import SwiftUI
 
 enum MemberMarkerState {

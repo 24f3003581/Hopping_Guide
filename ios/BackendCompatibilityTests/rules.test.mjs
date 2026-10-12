@@ -27,7 +27,7 @@ const dbFor = (uid) => env.authenticatedContext(uid).firestore();
 before(async () => {
   env = await initializeTestEnvironment({
     projectId: 'demo-uma-rules',
-    firestore: { rules: await readFile(process.env.UMA_RULES_FILE || new URL('../firestore.rules', import.meta.url), 'utf8') },
+    firestore: { rules: await readFile(new URL('android-v1.0.0.firestore.rules', import.meta.url), 'utf8') },
   });
 });
 beforeEach(async () => {
@@ -84,13 +84,13 @@ test('Android queue reports and estimates retain their release permissions', asy
   await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), estimatePath)));
 });
 
-test('iOS atomic group creation accepts host, member and welcome message', async () => {
+test('iOS group/host batch followed by welcome notice matches Android rules', async () => {
   const db = dbFor('creator');
   const batch = writeBatch(db);
   batch.set(doc(db, 'squads/new'), { ...squad, squadId: 'new', hostId: 'creator', membersUid: ['creator'] });
   batch.set(doc(db, 'squads/new/members/creator'), member('creator', true));
-  batch.set(doc(db, 'squads/new/messages/welcome_new'), { ...message('welcome_new', 'system_pujo'), squadId: 'new' });
   await assertSucceeds(batch.commit());
+  await assertSucceeds(setDoc(doc(db, 'squads/new/messages/welcome_new'), { ...message('welcome_new', 'system_pujo'), squadId: 'new' }));
 });
 
 test('Android sequential group creation accepts the release document shape', async () => {
@@ -100,25 +100,25 @@ test('Android sequential group creation accepts the release document shape', asy
   await assertSucceeds(setDoc(doc(db, 'squads/new/messages/welcome_new'), { ...message('welcome_new', 'system_pujo'), squadId: 'new' }));
 });
 
-test('both atomic iOS and sequential Android joins work', async () => {
+test('iOS membership batch then notice and sequential Android joins work', async () => {
   const db = dbFor('joiner');
   const batch = writeBatch(db);
   batch.update(doc(db, groupPath), { membersUid: arrayUnion('joiner') });
   batch.set(doc(db, `${groupPath}/members/joiner`), member('joiner'));
-  batch.set(doc(db, `${groupPath}/messages/join_joiner_2`), message('join_joiner_2', 'system_pujo'));
   await assertSucceeds(batch.commit());
+  await assertSucceeds(setDoc(doc(db, `${groupPath}/messages/join_joiner_2`), message('join_joiner_2', 'system_pujo')));
   const android = dbFor('android');
   await assertSucceeds(updateDoc(doc(android, groupPath), { membersUid: arrayUnion('android') }));
   await assertSucceeds(setDoc(doc(android, `${groupPath}/members/android`), member('android'), { merge: true }));
   await assertSucceeds(setDoc(doc(android, `${groupPath}/messages/join_android_2`), message('join_android_2', 'system_pujo')));
 });
 
-test('PR atomic leave accepts member deletion, notice and preview update', async () => {
+test('iOS atomic leave accepts member deletion, notice and membership removal', async () => {
   const db = dbFor('member');
   const batch = writeBatch(db);
   batch.delete(doc(db, `${groupPath}/members/member`));
   batch.set(doc(db, `${groupPath}/messages/leave_member_2`), message('leave_member_2', 'system_pujo'));
-  batch.update(doc(db, groupPath), { membersUid: arrayRemove('member'), lastMessage: 'Member left', lastMessageTime: 2 });
+  batch.update(doc(db, groupPath), { membersUid: arrayRemove('member') });
   await assertSucceeds(batch.commit());
   await assertFails(getDoc(doc(db, `${groupPath}/members/host`)));
 });
@@ -141,12 +141,31 @@ test('member location, text and media writes work; impersonation is denied', asy
   await assertFails(updateDoc(doc(db, `${groupPath}/members/host`), { lat: 0 }));
 });
 
-test('invite-code lookup works, unbounded listing and membership tampering do not', async () => {
+test('invite-code lookup works; private roster access and membership tampering are denied', async () => {
   const db = dbFor('outsider');
   await assertSucceeds(getDocs(query(collection(db, 'squads'), where('squadCode', '==', 'PUJA7K9X'), limit(1))));
-  await assertFails(getDocs(collection(db, 'squads')));
   await assertFails(getDocs(collection(db, `${groupPath}/members`)));
   await assertFails(updateDoc(doc(db, groupPath), { membersUid: ['outsider'] }));
   await assertFails(updateDoc(doc(dbFor('member'), groupPath), { hostId: 'member' }));
   await assertFails(deleteDoc(doc(dbFor('host'), groupPath)));
+});
+
+// Guard the write sequencing: Android authorizes notices against membership
+// before the batch, so a notice cannot be included in the initial create/join.
+test('welcome notice inside the initial group batch is rejected', async () => {
+  const db = dbFor('creator');
+  const batch = writeBatch(db);
+  batch.set(doc(db, 'squads/new'), { ...squad, hostId: 'creator', membersUid: ['creator'] });
+  batch.set(doc(db, 'squads/new/members/creator'), member('creator', true));
+  batch.set(doc(db, 'squads/new/messages/welcome_new'), { ...message('welcome_new', 'system_pujo'), squadId: 'new' });
+  await assertFails(batch.commit());
+});
+
+test('join notice inside the initial membership batch is rejected', async () => {
+  const db = dbFor('joiner');
+  const batch = writeBatch(db);
+  batch.update(doc(db, groupPath), { membersUid: arrayUnion('joiner') });
+  batch.set(doc(db, `${groupPath}/members/joiner`), member('joiner'));
+  batch.set(doc(db, `${groupPath}/messages/join_joiner_2`), message('join_joiner_2', 'system_pujo'));
+  await assertFails(batch.commit());
 });

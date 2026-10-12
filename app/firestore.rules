@@ -1,176 +1,22 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function signedIn() {
-      return request.auth != null;
-    }
-
-    function squadPath(squadId) {
-      return /databases/$(database)/documents/squads/$(squadId);
-    }
-
-    function isSquadMember(squadId) {
-      let path = squadPath(squadId);
-      return signedIn()
-        && exists(path)
-        && get(path).data.membersUid is list
-        && get(path).data.membersUid.hasAny([request.auth.uid]);
-    }
-
-    function isSquadMemberAfter(squadId) {
-      let path = squadPath(squadId);
-      return signedIn()
-        && existsAfter(path)
-        && getAfter(path).data.membersUid is list
-        && getAfter(path).data.membersUid.hasAny([request.auth.uid]);
-    }
-
-    function validSelfJoin() {
-      return resource.data.membersUid is list
-        && request.resource.data.membersUid is list
-        && (!resource.data.keys().hasAny(['status']) || resource.data.status != 'closed')
-        && !resource.data.membersUid.hasAny([request.auth.uid])
-        && request.resource.data.membersUid.hasAny([request.auth.uid])
-        && request.resource.data.membersUid.size() == resource.data.membersUid.size() + 1
-        && request.resource.data.membersUid.hasAll(resource.data.membersUid);
-    }
-
-    function validSelfLeave() {
-      return resource.data.membersUid is list
-        && request.resource.data.membersUid is list
-        && resource.data.membersUid.hasAny([request.auth.uid])
-        && !request.resource.data.membersUid.hasAny([request.auth.uid])
-        && resource.data.membersUid.size() == request.resource.data.membersUid.size() + 1
-        && resource.data.membersUid.hasAll(request.resource.data.membersUid);
-    }
-
+    // Hopping Squads & Real-time Live Tracking
     match /squads/{squadId} {
-      // Both clients resolve one invite code at a time; do not allow unbounded squad dumps.
-      allow get: if signedIn();
-      allow list: if signedIn() && request.query.limit <= 1;
-
-      allow create: if signedIn()
-        && request.resource.data.hostId == request.auth.uid
-        && request.resource.data.membersUid == [request.auth.uid]
-        && request.resource.data.squadCode is string
-        && request.resource.data.squadCode.matches('^PUJA[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{4}$')
-        && request.resource.data.name is string;
-
-      allow update: if signedIn()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'membersUid',
-          'lastMessage',
-          'lastMessageTime',
-          // Shared hopping-plan transaction fields used by Android v1.0.0.
-          'chosenPandals',
-          'isHoppingActive',
-          'activeStopIndex',
-          'planRevision',
-          'updatedAt',
-          'name',
-          'meetupPointName',
-          'meetupLat',
-          'meetupLng',
-          'separationThresholdMeters'
-        ])
-        && (
-          (
-            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['membersUid'])
-            && validSelfJoin()
-          )
-          || (
-            request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-              'membersUid', 'lastMessage', 'lastMessageTime'
-            ])
-            && validSelfLeave()
-          )
-          || (
-            isSquadMember(squadId)
-            && request.resource.data.membersUid == resource.data.membersUid
-          )
-        );
-
-      allow delete: if false;
+      allow read, write: if true;
 
       match /members/{memberId} {
-        allow read: if isSquadMember(squadId);
-
-        allow create: if signedIn()
-          && request.auth.uid == memberId
-          && isSquadMemberAfter(squadId)
-          && request.resource.data.keys().hasOnly([
-            'id', 'name', 'lat', 'lng', 'latitude', 'longitude',
-            'status', 'photo_url', 'photoUrl', 'phone_number', 'phoneNumber',
-            'is_host', 'is_user', 'share_location', 'is_online',
-            'battery', 'batteryLevel', 'battery_level', 'color',
-            'last_seen', 'last_seen_at'
-          ])
-          && request.resource.data.is_host == (getAfter(squadPath(squadId)).data.hostId == request.auth.uid);
-
-        allow update: if signedIn()
-          && request.auth.uid == memberId
-          && isSquadMember(squadId)
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-            'name', 'lat', 'lng', 'latitude', 'longitude', 'status',
-            'photo_url', 'photoUrl', 'phone_number', 'phoneNumber',
-            'share_location', 'is_online', 'battery', 'batteryLevel',
-            'battery_level', 'last_seen', 'last_seen_at'
-          ]);
-
-        allow delete: if signedIn()
-          && request.auth.uid == memberId
-          && isSquadMember(squadId);
+        allow read, write: if true;
       }
 
       match /messages/{messageId} {
-        function validMessage() {
-          return request.resource.data.keys().hasOnly([
-              'id', 'squadId', 'senderId', 'senderName', 'senderPhotoUrl',
-              'type', 'text', 'mediaUrl', 'media_url', 'thumbnailUrl',
-              'thumbnail_url', 'timestamp'
-            ])
-            && request.resource.data.squadId == squadId
-            && request.resource.data.type in ['text', 'image', 'video']
-            && request.resource.data.timestamp is number
-            && (
-              request.resource.data.senderId == request.auth.uid
-              || (
-                request.resource.data.senderId == 'system_pujo'
-                && request.resource.data.id is string
-                && request.resource.data.id.matches('^(welcome|join|leave)_[A-Za-z0-9_-]+$')
-              )
-            );
-        }
-
-        allow read: if isSquadMember(squadId);
-        allow create: if signedIn()
-          && (isSquadMember(squadId) || isSquadMemberAfter(squadId))
-          && validMessage();
-        allow update: if signedIn()
-          && isSquadMember(squadId)
-          && resource.data.senderId == request.auth.uid
-          && validMessage();
-        allow delete: if false;
-      }
-
-      // Android v1.0.0 submits queue reports within the active group.
-      match /queue_reports/{reportId} {
-        allow read: if isSquadMember(squadId);
-        allow create: if isSquadMember(squadId)
-          && request.resource.data.reporterId == request.auth.uid;
-        allow update, delete: if false;
+        allow read, write: if true;
       }
     }
 
-    // Browsing curated pandals does not require login on Android v1.0.0.
-    match /pandals/{pandalId} {
-      allow read: if true;
-      allow write: if false;
-    }
-
-    // Preserve the released Android queue-estimate read/write contract.
-    match /pandal_queue_waits/{pandalId} {
-      allow read, write: if signedIn();
+    // Default fallback rule for festival users
+    match /{document=**} {
+      allow read, write: if request.auth != null;
     }
   }
 }

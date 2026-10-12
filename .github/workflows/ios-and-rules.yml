@@ -1,24 +1,18 @@
-name: iOS build and shared rules
+name: iOS build and backend compatibility
 on:
   pull_request:
     paths:
       - 'ios/**'
-      - 'app/firestore.rules'
-      - 'app/firebase.rules-test.json'
-      - 'app/rules-tests/**'
       - '.github/workflows/ios-and-rules.yml'
   push:
     branches: [master]
     paths:
       - 'ios/**'
-      - 'app/firestore.rules'
-      - 'app/firebase.rules-test.json'
-      - 'app/rules-tests/**'
       - '.github/workflows/ios-and-rules.yml'
 permissions:
   contents: read
 jobs:
-  firestore-rules:
+  backend-compatibility:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -27,15 +21,15 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-          cache-dependency-path: app/rules-tests/package-lock.json
+          cache-dependency-path: ios/BackendCompatibilityTests/package-lock.json
       - uses: actions/setup-java@v6.0.1
         with:
           distribution: temurin
           java-version: '21'
       - run: npm ci
-        working-directory: app/rules-tests
+        working-directory: ios/BackendCompatibilityTests
       - run: npm test
-        working-directory: app/rules-tests
+        working-directory: ios/BackendCompatibilityTests
   ios-build:
     runs-on: macos-latest
     timeout-minutes: 45

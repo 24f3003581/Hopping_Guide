@@ -1,6 +1,7 @@
 // Features/Pandals/PandalsListView.swift — browseable list of pandals + filters
 
 import SwiftUI
+import CoreLocation
 
 enum PandalSortOption: String, CaseIterable, Identifiable {
     case `default`, nearestFirst, ratingHighToLow, lowCrowdFirst

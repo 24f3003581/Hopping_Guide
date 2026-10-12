@@ -180,11 +180,12 @@ class SquadFirestoreRepository {
 
     try {
       final squadDoc = fs.collection('squads').doc(squadId);
-      final batch = fs.batch();
-      final squadUpdates = <String, dynamic>{
+
+      await squadDoc.update({
         'membersUid': FieldValue.arrayRemove([memberId]),
-      };
-      batch.delete(squadDoc.collection('members').doc(memberId));
+      });
+
+      await squadDoc.collection('members').doc(memberId).delete();
 
       if (memberName != null && memberName.isNotEmpty) {
         final leaveMsg = ChatMessage(
@@ -196,14 +197,8 @@ class SquadFirestoreRepository {
           type: ChatMessageType.text,
           timestamp: DateTime.now(),
         );
-        batch.set(squadDoc.collection('messages').doc(leaveMsg.id), leaveMsg.toJson());
-        squadUpdates.addAll({
-          'lastMessage': leaveMsg.text,
-          'lastMessageTime': leaveMsg.timestamp.millisecondsSinceEpoch,
-        });
+        await squadDoc.collection('messages').doc(leaveMsg.id).set(leaveMsg.toJson());
       }
-      batch.update(squadDoc, squadUpdates);
-      await batch.commit();
     } catch (e) {
       debugPrint('[SquadFirestoreRepository] leaveSquad error: $e');
     }

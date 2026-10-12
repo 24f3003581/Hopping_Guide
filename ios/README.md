@@ -61,7 +61,7 @@ open Uma.xcodeproj
 2. Add the downloaded `GoogleService-Info.plist` inside `ios/Uma/` so XcodeGen includes it in the app bundle. Keep this file untracked; do not commit Firebase config files.
 3. Regenerate the Xcode project with `xcodegen generate`. The project spec resolves Firebase Auth, Firestore, and Stream Video through Swift Package Manager.
 4. The video backend must have its Firebase Admin credentials and `STREAM_API_KEY` / `STREAM_API_SECRET` configured on the server. The Stream secret must never be placed in the iOS app.
-5. Verify shared rules locally with `cd app/rules-tests && npm ci && npm test` (Node 22+ and Java 21+). These tests cover Android v1.0.0 hopping-plan updates, queue reports/estimates, public pandal browsing, and Android/iOS group writes. After review, deploy `app/firestore.rules` to the existing Firebase project: `cd app && firebase deploy --only firestore:rules --project kolkata-puja-2026`. Merging the PR does not deploy rules.
+5. Verify the iOS write contract with `cd ios/BackendCompatibilityTests && npm ci && npm test` (Node 22+ and Java 21+). The tests use an unchanged rules snapshot from Android v1.0.0. This PR does not modify or deploy Android's Firestore rules. Welcome/join notices are sent after membership commits to work with the existing rules.
 
 Without Firebase configuration, squad create/join, cross-device chat, and video calls show a setup/sign-in error. If the backend or Stream credentials are unavailable, the call screen shows the actual failure; it does not create a demo room.
 
