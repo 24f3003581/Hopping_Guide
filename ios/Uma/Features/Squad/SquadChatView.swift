@@ -8,11 +8,12 @@ struct SquadChatView: View {
     let squadName: String
 
     @State private var input: String = ""
-    @State private var showingPhotoFilter: Bool = false
     @FocusState private var focused: Bool
 
     @State private var draft: [ChatMessage] = []
     @State private var showVideoCall: Bool = false
+    @State private var sendError: String?
+    @State private var isSending = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -29,17 +30,26 @@ struct SquadChatView: View {
                             .foregroundStyle(Color.green)
                     }
 
-                    Button(action: { showingPhotoFilter.toggle() }) {
-                        Image(systemName: showingPhotoFilter ? "photo.fill" : "photo")
-                    }
                 }
             }
         }
         .fullScreenCover(isPresented: $showVideoCall) {
             GroupVideoCallView(squadId: squadId, squadName: squadName)
         }
-        .onAppear { refresh() }
-        .onChange(of: env.chat.messages(for: squadId).count) { _, _ in refresh() }
+        .onAppear {
+            env.chat.observe(squadId: squadId)
+            refresh()
+        }
+        .onChange(of: env.chat.messages(for: squadId)) { _, newMessages in draft = newMessages }
+        .onDisappear { env.chat.stopObserving(squadId: squadId) }
+        .alert("Message not sent", isPresented: Binding(
+            get: { sendError != nil },
+            set: { if !$0 { sendError = nil } }
+        )) {
+            Button("OK", role: .cancel) { sendError = nil }
+        } message: {
+            Text(sendError ?? "Please try again.")
+        }
     }
 
     private var messageList: some View {
@@ -47,7 +57,7 @@ struct SquadChatView: View {
             ScrollView {
                 LazyVStack(spacing: 6) {
                     ForEach(draft) { msg in
-                        MessageBubble(message: msg, isMe: env.userState.currentUserName == msg.senderName)
+                        MessageBubble(message: msg, isMe: env.userState.firebaseUserId == msg.senderId)
                             .id(msg.id)
                     }
                 }
@@ -92,14 +102,21 @@ struct SquadChatView: View {
 
     private func send() {
         let text = input.trimmingCharacters(in: .whitespaces)
-        guard !text.isEmpty else { return }
-        env.chat.send(
-            squadId: squadId,
-            senderId: env.userState.currentUserName,
-            senderName: env.userState.currentUserName,
-            text: text)
-        input = ""
-        refresh()
+        guard !text.isEmpty, !isSending else { return }
+        isSending = true
+        Task {
+            do {
+                try await env.chat.send(
+                    squadId: squadId,
+                    senderName: env.userState.currentUserName,
+                    text: text
+                )
+                input = ""
+            } catch {
+                sendError = error.localizedDescription
+            }
+            isSending = false
+        }
     }
 
     private func refresh() {

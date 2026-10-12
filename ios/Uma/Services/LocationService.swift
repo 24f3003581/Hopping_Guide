@@ -4,12 +4,19 @@ import Foundation
 import CoreLocation
 import Observation
 
+enum LocationTrackingClient: Hashable {
+    case map
+    case pandalDirectory
+    case squad
+}
+
 @MainActor
 @Observable
 final class LocationService: NSObject {
     static let shared = LocationService()
 
     private let manager = CLLocationManager()
+    private var trackingClients: Set<LocationTrackingClient> = []
     private(set) var lastCoordinate: CLLocationCoordinate2D?
     private(set) var lastLocation: CLLocation?
     private(set) var lastAccuracyMeters: Double?
@@ -34,21 +41,30 @@ final class LocationService: NSObject {
         }
     }
 
-    func startLiveTracking() {
+    func startLiveTracking(for client: LocationTrackingClient = .map) {
+        trackingClients.insert(client)
         requestPermission()
-        if authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways {
-            manager.startUpdatingLocation()
-            if CLLocationManager.headingAvailable() {
-                manager.startUpdatingHeading()
-            }
-            isTracking = true
-        }
+        startUpdatesIfAuthorized()
     }
 
-    func stopLiveTracking() {
+    func stopLiveTracking(for client: LocationTrackingClient = .map) {
+        trackingClients.remove(client)
+        guard trackingClients.isEmpty else { return }
         manager.stopUpdatingLocation()
         manager.stopUpdatingHeading()
         isTracking = false
+    }
+
+    private func startUpdatesIfAuthorized() {
+        guard !trackingClients.isEmpty,
+              authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways,
+              !isTracking else { return }
+
+        manager.startUpdatingLocation()
+        if CLLocationManager.headingAvailable() {
+            manager.startUpdatingHeading()
+        }
+        isTracking = true
     }
 
     /// Returns true if the latest GPS fix is strictly fresh (<= maxAge, default 10s)
@@ -75,13 +91,25 @@ final class LocationService: NSObject {
     }
 
     /// Returns the most recent coordinate, or nil if unavailable.
-    func currentPosition() -> CLLocationCoordinate2D? { lastCoordinate }
+    func currentPosition() -> CLLocationCoordinate2D? {
+        guard Self.isLocationValid(lastLocation, maxAge: 60, maxAccuracy: 100) else { return nil }
+        return lastLocation?.coordinate
+    }
 }
 
 extension LocationService: CLLocationManagerDelegate {
     nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         let status = manager.authorizationStatus
-        Task { @MainActor in self.authorizationStatus = status }
+        Task { @MainActor in
+            self.authorizationStatus = status
+            if status == .authorizedWhenInUse || status == .authorizedAlways {
+                self.startUpdatesIfAuthorized()
+            } else if status == .denied || status == .restricted {
+                self.manager.stopUpdatingLocation()
+                self.manager.stopUpdatingHeading()
+                self.isTracking = false
+            }
+        }
     }
 
     nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
@@ -101,6 +129,6 @@ extension LocationService: CLLocationManagerDelegate {
     }
 
     nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        // Permission denied / disabled — non-fatal in demo mode.
+        // Location is optional; the map and directory can fall back to Kolkata's center.
     }
 }

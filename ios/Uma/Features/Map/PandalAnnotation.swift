@@ -39,11 +39,24 @@ final class FoodSpotAnnotation: NSObject, MKAnnotation {
 }
 
 final class SquadMemberAnnotation: NSObject, MKAnnotation {
-    let member: SquadMember
-    var coordinate: CLLocationCoordinate2D { member.coordinate }
-    var title: String? { member.name }
-    var subtitle: String? { member.status }
-    init(member: SquadMember) { self.member = member }
+    var member: SquadMember {
+        didSet {
+            coordinate = member.coordinate
+            title = member.name
+            subtitle = member.status
+        }
+    }
+    @objc dynamic var coordinate: CLLocationCoordinate2D
+    @objc dynamic var title: String?
+    @objc dynamic var subtitle: String?
+
+    init(member: SquadMember) {
+        self.member = member
+        coordinate = member.coordinate
+        title = member.name
+        subtitle = member.status
+        super.init()
+    }
 }
 
 /// Custom annotation view — teardrop pin with gold outline, stop numbering, and priority layering atop stations.

@@ -10,12 +10,14 @@ struct MapTabView: View {
     @State private var highlightedRoute: WalkingRoute?
     @State private var showFoodSpots = false
     @State private var showMetroStations = false
+    @State private var isNearbyFilterEnabled = false
+    @State private var isShowingZonePicker = false
     @State private var selectedZone: KolkataZone?
     @State private var searchText: String = ""
     @State private var searchFocused: Bool = false
     @State private var searchResults: [OmniSearchResult] = []
     @State private var followUser: Bool = false
-    @State private var cameraTrigger: UUID = UUID()
+    @State private var cameraRequest: MapCameraRequest?
     @State private var statusPill: StatusPill?
     @State private var isCalculating = false
 
@@ -35,14 +37,16 @@ struct MapTabView: View {
                 pandals: visiblePandals,
                 metroStations: focusedMetroStations,
                 foodSpots: showFoodSpots ? env.foodSpots.all : [],
-                squadMembers: env.squad.companionMembers,
+                squadMembers: env.squad.companionMembers.filter(\.shareLocation),
                 showFoodSpots: showFoodSpots,
                 showMetroStations: showMetroStations || env.activeTrail != nil,
                 followUser: followUser,
-                userLocation: env.location.lastCoordinate,
+                userLocation: env.location.currentPosition(),
+                cameraRequest: cameraRequest,
                 activeTrail: env.activeTrail,
                 onTapPandal: { pandal in
                     Haptics.selection()
+                    followUser = false
                     selectedPandal = pandal
                     Task { await computeRoute(to: pandal) }
                 },
@@ -120,11 +124,20 @@ struct MapTabView: View {
             if !isFocused { performSearch() }
         }
         .task {
-            env.location.requestPermission()
-            env.location.startLiveTracking()
+            env.location.startLiveTracking(for: .map)
+        }
+        .onChange(of: env.location.authorizationStatus) { _, status in
+            if (status == .denied || status == .restricted), followUser {
+                followUser = false
+                showStatus("Location access is off. Enable it in Settings to follow your position.",
+                           icon: "location.slash")
+            }
         }
         .onDisappear {
-            env.location.stopLiveTracking()
+            env.location.stopLiveTracking(for: .map)
+        }
+        .sheet(isPresented: $isShowingZonePicker) {
+            zonePickerSheet
         }
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: statusPill)
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: selectedPandal)
@@ -144,7 +157,7 @@ struct MapTabView: View {
                     showZonePicker()
                 }
                 FilterChip(title: "Nearby 10km", icon: "location.circle",
-                           isActive: false) { showStatus("Nearby filter coming soon", icon: "info.circle") }
+                           isActive: isNearbyFilterEnabled) { toggleNearbyFilter() }
                 FilterChip(title: "Metro", icon: "tram.fill",
                            isActive: showMetroStations) {
                     showMetroStations.toggle()
@@ -173,6 +186,14 @@ struct MapTabView: View {
             list = env.pandals.filter(by: zone)
         } else {
             list = env.pandals.allPandals
+        }
+        if isNearbyFilterEnabled {
+            let center = env.location.currentPosition() ?? CLLocationCoordinate2D(
+                latitude: AppConfig.defaultLat,
+                longitude: AppConfig.defaultLng)
+            list = list.filter {
+                haversineMeters(center, $0.coordinate) <= AppConfig.nearbyRadius
+            }
         }
         if let trail = env.activeTrail {
             for s in trail.stops where !list.contains(where: { $0.id == s.id }) {
@@ -232,14 +253,13 @@ struct MapTabView: View {
             searchResults = []
             return
         }
-        let userLat = env.location.lastCoordinate?.latitude
-        let userLng = env.location.lastCoordinate?.longitude
+        let userCoordinate = env.location.currentPosition()
         searchResults = env.omniSearch.search(
             query: searchText,
             pandals: env.pandals.allPandals,
             foodSpots: env.foodSpots.all,
             metroStations: MetroRepository.allStations,
-            userLat: userLat, userLng: userLng)
+            userLat: userCoordinate?.latitude, userLng: userCoordinate?.longitude)
     }
 
     private func onSearchSubmit() {
@@ -258,6 +278,7 @@ struct MapTabView: View {
         switch r.type {
         case .pandal:
             if let id = r.pandalId, let p = env.pandals.byId(id) {
+                followUser = false
                 selectedPandal = p
                 Task { await computeRoute(to: p) }
             }
@@ -275,7 +296,7 @@ struct MapTabView: View {
     private func computeRoute(to pandal: Pandal) async {
         isCalculating = true
         defer { isCalculating = false }
-        let userLoc = env.location.lastCoordinate
+        let userLoc = env.location.currentPosition()
             ?? CLLocationCoordinate2D(latitude: AppConfig.defaultLat, longitude: AppConfig.defaultLng)
         let route = await env.routing.getWalkingRoute(
             start: userLoc,
@@ -291,21 +312,125 @@ struct MapTabView: View {
     }
 
     private func zoom(by delta: Double) {
-        // Camera zoom is handled implicitly through MapKit region changes on tap.
-        // For finer control we'd thread a binding to MKMapView's region.
+        cameraRequest = MapCameraRequest(action: delta >= 0 ? .zoomIn : .zoomOut)
     }
 
     private func locateUser() {
-        followUser.toggle()
-        if followUser, let c = env.location.lastCoordinate {
+        if followUser {
+            followUser = false
+            showStatus("Free-roam mode", icon: "scope")
+            return
+        }
+
+        if env.location.authorizationStatus == .denied || env.location.authorizationStatus == .restricted {
+            showStatus("Location access is off. Enable it in Settings to follow your position.",
+                       icon: "location.slash")
+            return
+        }
+
+        followUser = true
+        env.location.startLiveTracking(for: .map)
+        if let coordinate = env.location.currentPosition() {
+            cameraRequest = MapCameraRequest(action: .center(coordinate))
             showStatus("Following your location", icon: "location.fill")
         } else {
-            showStatus("Free-roam mode", icon: "scope")
+            showStatus("Getting your location…", icon: "location.circle")
         }
     }
 
     private func showZonePicker() {
-        // Stub — zone picker could open a sheet; for v1 default to "All"
+        isShowingZonePicker = true
+    }
+
+    private var zonePickerSheet: some View {
+        NavigationStack {
+            List {
+                Section {
+                    zonePickerRow(title: "All zones", isSelected: selectedZone == nil) {
+                            followUser = false
+                        selectedZone = nil
+                            cameraRequest = MapCameraRequest(action: .region(MKCoordinateRegion(
+                                center: CLLocationCoordinate2D(latitude: AppConfig.defaultLat,
+                                                               longitude: AppConfig.defaultLng),
+                                span: MKCoordinateSpan(latitudeDelta: 0.6, longitudeDelta: 0.6))))
+                        isShowingZonePicker = false
+                    }
+                }
+
+                Section("Kolkata zones") {
+                    ForEach(KolkataZone.allCases, id: \.self) { zone in
+                        zonePickerRow(title: zone.label, isSelected: selectedZone == zone) {
+                            followUser = false
+                            selectedZone = zone
+                            let latitude = zone.centerCoordinate.latitude
+                            let longitude = zone.centerCoordinate.longitude
+                            let center = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+                            let latitudeDelta = 360.0 / pow(2.0, zone.defaultZoom)
+                            let longitudeDelta = latitudeDelta / max(0.1, cos(latitude * .pi / 180.0))
+                            cameraRequest = MapCameraRequest(action: .region(MKCoordinateRegion(
+                                center: center,
+                                span: MKCoordinateSpan(latitudeDelta: latitudeDelta,
+                                                       longitudeDelta: longitudeDelta))))
+                            isShowingZonePicker = false
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Choose a zone")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { isShowingZonePicker = false }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+    }
+
+    private func zonePickerRow(title: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
+        Button {
+            Haptics.selection()
+            action()
+        } label: {
+            HStack {
+                Text(title)
+                    .foregroundStyle(.primary)
+                Spacer()
+                if isSelected {
+                    Image(systemName: "checkmark")
+                        .fontWeight(.semibold)
+                        .foregroundStyle(PujaColors.durgaRed)
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func toggleNearbyFilter() {
+        isNearbyFilterEnabled.toggle()
+        if isNearbyFilterEnabled {
+            env.location.startLiveTracking(for: .map)
+            let currentCoordinate = env.location.currentPosition()
+            let center = currentCoordinate ?? CLLocationCoordinate2D(
+                latitude: AppConfig.defaultLat,
+                longitude: AppConfig.defaultLng)
+            let candidates = selectedZone.map { env.pandals.filter(by: $0) } ?? env.pandals.allPandals
+            let count = candidates.filter {
+                haversineMeters(center, $0.coordinate) <= AppConfig.nearbyRadius
+            }.count
+            if currentCoordinate != nil {
+                showStatus("\(count) pandals within 10 km", icon: "location.circle")
+            } else if env.location.authorizationStatus == .denied || env.location.authorizationStatus == .restricted {
+                showStatus("Showing \(count) near Kolkata; enable location for nearby results.",
+                           icon: "location.slash")
+            } else {
+                showStatus("Showing \(count) near Kolkata while location loads.",
+                           icon: "location.circle")
+            }
+        } else {
+            showStatus("Nearby filter off", icon: "map")
+        }
     }
 
     private func showStatus(_ message: String, icon: String, color: Color = PujaColors.festivalGold) {

@@ -1,0 +1,48 @@
+name: iOS build and backend compatibility
+on:
+  pull_request:
+    paths:
+      - 'ios/**'
+      - '.github/workflows/ios-and-rules.yml'
+  push:
+    branches: [master]
+    paths:
+      - 'ios/**'
+      - '.github/workflows/ios-and-rules.yml'
+permissions:
+  contents: read
+jobs:
+  backend-compatibility:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: ios/BackendCompatibilityTests/package-lock.json
+      - uses: actions/setup-java@v6.0.1
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: npm ci
+        working-directory: ios/BackendCompatibilityTests
+      - run: npm test
+        working-directory: ios/BackendCompatibilityTests
+  ios-build:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - run: brew install xcodegen
+      - run: xcodegen generate
+        working-directory: ios
+      - name: Build unsigned iPhone release
+        working-directory: ios
+        run: >-
+          xcodebuild -project Uma.xcodeproj -scheme Uma
+          -configuration Release -destination 'generic/platform=iOS'
+          -derivedDataPath "$RUNNER_TEMP/UmaDerivedData"
+          CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=''
+          build

@@ -1,60 +1,53 @@
-// Services/GroupVideoApi.swift — Squad group video room session manager
-// Connects to hosted backend on Render (https://uma-group-calling.onrender.com)
-// with resilient fallback and automatic error recovery.
+// Services/GroupVideoApi.swift — authenticated session exchange for squad video calls.
 
 import Foundation
 
-public struct GroupVideoSession: Codable, Sendable {
-    public let apiKey: String
-    public let token: String
-    public let callId: String
-    public let callType: String
-
-    public init(apiKey: String, token: String, callId: String, callType: String = "uma_squad") {
-        self.apiKey = apiKey
-        self.token = token
-        self.callId = callId
-        self.callType = callType
-    }
+struct GroupVideoSession: Decodable, Sendable {
+    let apiKey: String
+    let userId: String
+    let token: String
+    let callId: String
+    let callType: String
 }
 
-public enum GroupVideoError: LocalizedError, Sendable {
+enum GroupVideoError: LocalizedError, Sendable {
     case invalidURL
-    case serverUnavailable(String)
     case unauthorized
-    case decodingError(String)
+    case notSquadMember
+    case notConfigured
+    case serverUnavailable(String)
+    case invalidResponse
     case networkError(String)
 
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
         case .invalidURL:
-            return "Invalid squad video backend URL configuration."
-        case .serverUnavailable(let msg):
-            return "Video calling server is unavailable: \(msg)"
+            return "The video calling server URL is invalid."
         case .unauthorized:
-            return "You are not an authorized member of this squad video room."
-        case .decodingError(let msg):
-            return "Failed to parse video session response: \(msg)"
-        case .networkError(let msg):
-            return "Network connection issue: \(msg)"
+            return "Your sign-in expired. Reopen the squad and try again."
+        case .notSquadMember:
+            return "Only current members of this squad can join its call."
+        case .notConfigured:
+            return "Video calling is not configured on the server yet."
+        case .serverUnavailable(let message):
+            return message
+        case .invalidResponse:
+            return "The video server returned an invalid response. Please try again."
+        case .networkError(let message):
+            return "Could not reach the video server: \(message)"
         }
     }
 }
 
-public final class GroupVideoApi: Sendable {
-    public static let shared = GroupVideoApi()
-
-    public static let defaultHostedUrl = "https://uma-group-calling.onrender.com"
+final class GroupVideoApi: Sendable {
+    static let shared = GroupVideoApi()
+    static let defaultHostedUrl = "https://uma-group-calling.onrender.com"
 
     private init() {}
 
-    /// Resolves the backend base URL with priority:
-    /// 1. UserDefaults override (`uma.videoApiUrl`)
-    /// 2. Info.plist defined `VIDEO_API_URL`
-    /// 3. Resilient default hosted backend: https://uma-group-calling.onrender.com
-    public var effectiveBaseUrl: String {
-        if let custom = UserDefaults.standard.string(forKey: "uma.videoApiUrl")?.trimmingCharacters(in: .whitespacesAndNewlines),
-           !custom.isEmpty {
+    var effectiveBaseUrl: String {
+        if let custom = UserDefaults.standard.string(forKey: "uma.videoApiUrl")?
+            .trimmingCharacters(in: .whitespacesAndNewlines), !custom.isEmpty {
             return custom.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
         }
         if let infoUrl = Bundle.main.infoDictionary?["VIDEO_API_URL"] as? String,
@@ -64,74 +57,73 @@ public final class GroupVideoApi: Sendable {
         return Self.defaultHostedUrl
     }
 
-    /// Requests a private call session for a squad room.
-    public func requestSession(
+    func requestSession(
         squadId: String,
-        userId: String,
+        firebaseIdToken: String,
         userName: String
     ) async throws -> GroupVideoSession {
-        guard let url = URL(string: "\(effectiveBaseUrl)/api/squads/\(squadId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? squadId)/video/session") else {
+        var pathCharacters = CharacterSet.alphanumerics
+        pathCharacters.insert(charactersIn: "-_")
+        guard let safeSquadId = squadId.addingPercentEncoding(withAllowedCharacters: pathCharacters),
+              let url = URL(string: "\(effectiveBaseUrl)/api/squads/\(safeSquadId)/video/session") else {
             throw GroupVideoError.invalidURL
         }
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
-        // Generous 90s timeout to accommodate Render free-tier cold spin up
-        request.timeoutInterval = 90.0
-
-        let payload: [String: Any] = [
-            "userId": userId,
-            "userName": userName,
-            "timestamp": Date().timeIntervalSince1970
-        ]
-
-        do {
-            request.httpBody = try JSONSerialization.data(withJSONObject: payload)
-        } catch {
-            throw GroupVideoError.networkError("Failed to encode session request")
-        }
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(firebaseIdToken)", forHTTPHeaderField: "Authorization")
+        request.timeoutInterval = 90
+        request.httpBody = try JSONSerialization.data(withJSONObject: ["userName": userName])
 
         let data: Data
         let response: URLResponse
         do {
             (data, response) = try await URLSession.shared.data(for: request)
+        } catch is CancellationError {
+            throw CancellationError()
         } catch {
-            // If offline or hosted backend spin up fails, fallback to local resilient session token
-            return Self.createSyntheticSession(squadId: squadId, userId: userId)
+            throw GroupVideoError.networkError(error.localizedDescription)
         }
 
-        if let http = response as? HTTPURLResponse {
-            if http.statusCode == 401 || http.statusCode == 403 {
-                throw GroupVideoError.unauthorized
+        guard let http = response as? HTTPURLResponse else {
+            throw GroupVideoError.invalidResponse
+        }
+        switch http.statusCode {
+        case 200..<300:
+            break
+        case 401:
+            throw GroupVideoError.unauthorized
+        case 403:
+            throw GroupVideoError.notSquadMember
+        case 503:
+            let envelope = try? JSONDecoder().decode(ErrorEnvelope.self, from: data)
+            if envelope?.error.code == "VIDEO_NOT_CONFIGURED" {
+                throw GroupVideoError.notConfigured
             }
-            if http.statusCode >= 500 {
-                // If backend error, return synthetic room for zero-friction hopper experience
-                return Self.createSyntheticSession(squadId: squadId, userId: userId)
-            }
+            throw GroupVideoError.serverUnavailable(envelope?.error.message ?? "Video calling is temporarily unavailable.")
+        default:
+            let envelope = try? JSONDecoder().decode(ErrorEnvelope.self, from: data)
+            throw GroupVideoError.serverUnavailable(envelope?.error.message ?? "Video calling failed (HTTP \(http.statusCode)).")
         }
 
-        do {
-            if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let apiKey = json["apiKey"] as? String,
-               let token = json["token"] as? String,
-               let callId = json["callId"] as? String {
-                let callType = (json["callType"] as? String) ?? "uma_squad"
-                return GroupVideoSession(apiKey: apiKey, token: token, callId: callId, callType: callType)
-            } else {
-                return Self.createSyntheticSession(squadId: squadId, userId: userId)
-            }
-        } catch {
-            return Self.createSyntheticSession(squadId: squadId, userId: userId)
+        guard let session = try? JSONDecoder().decode(GroupVideoSession.self, from: data),
+              !session.apiKey.isEmpty,
+              !session.token.isEmpty,
+              !session.userId.isEmpty,
+              !session.callId.isEmpty,
+              !session.callType.isEmpty else {
+            throw GroupVideoError.invalidResponse
         }
+        return session
     }
+}
 
-    /// Creates a graceful synthetic session when backend is in cold sleep or demo mode
-    public static func createSyntheticSession(squadId: String, userId: String) -> GroupVideoSession {
-        let callId = "squad_\(squadId)"
-        let fallbackApiKey = "mmhfdzb5evj2" // public demo key
-        let token = "demo_token_\(userId)_\(UUID().uuidString.prefix(6))"
-        return GroupVideoSession(apiKey: fallbackApiKey, token: token, callId: callId, callType: "uma_squad")
+private struct ErrorEnvelope: Decodable {
+    struct ServerError: Decodable {
+        let code: String
+        let message: String
     }
+    let error: ServerError
 }

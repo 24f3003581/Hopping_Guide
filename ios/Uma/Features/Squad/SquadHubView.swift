@@ -9,8 +9,9 @@ struct SquadHubView: View {
     @State private var joinCode: String = ""
     @State private var newSquadName: String = "My Squad"
     @State private var navigateToChat = false
-    @State private var navigateToDetail: SquadMember?
     @State private var showVideoCall = false
+    @State private var operationError: String?
+    @State private var isSubmitting = false
 
     var body: some View {
         NavigationStack {
@@ -27,11 +28,11 @@ struct SquadHubView: View {
             }
             .navigationTitle("Squads")
             .navigationDestination(isPresented: $navigateToChat) {
-                SquadChatView(squadId: env.squad.currentCode ?? "",
+                SquadChatView(squadId: env.squad.currentId ?? "",
                               squadName: env.squad.currentName ?? "")
             }
             .fullScreenCover(isPresented: $showVideoCall) {
-                GroupVideoCallView(squadId: env.squad.currentCode ?? "squad",
+                GroupVideoCallView(squadId: env.squad.currentId ?? "",
                                    squadName: env.squad.currentName ?? "Squad")
             }
             .sheet(isPresented: $showCreateSheet) {
@@ -39,6 +40,14 @@ struct SquadHubView: View {
             }
             .sheet(isPresented: $showJoinSheet) {
                 joinSheet
+            }
+            .alert("Squad action failed", isPresented: Binding(
+                get: { operationError != nil },
+                set: { if !$0 { operationError = nil } }
+            )) {
+                Button("OK", role: .cancel) { operationError = nil }
+            } message: {
+                Text(operationError ?? "Please try again.")
             }
         }
     }
@@ -51,8 +60,16 @@ struct SquadHubView: View {
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(PujaColors.festivalGold)
         } description: {
-            Text("Create a squad to share live locations, ping each other, and stay within reach during pandal hopping.")
-                .multilineTextAlignment(.center)
+            VStack(spacing: 8) {
+                Text("Create a squad to share live locations, ping each other, and stay within reach during pandal hopping.")
+                    .multilineTextAlignment(.center)
+                if let setupMessage = env.userState.firebaseSetupMessage {
+                    Label(setupMessage, systemImage: "icloud.slash")
+                        .font(PujaTypography.rounded(12))
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+            }
         } actions: {
             VStack(spacing: 10) {
                 Button(action: { showCreateSheet = true }) {
@@ -93,7 +110,15 @@ struct SquadHubView: View {
             settingsCard
             membersCard
             chatCard
-            Button(action: { env.squad.leaveSquad() }) {
+            Button {
+                Task {
+                    do {
+                        try await env.squad.leaveSquad()
+                    } catch {
+                        operationError = error.localizedDescription
+                    }
+                }
+            } label: {
                 Label("Leave Squad", systemImage: "rectangle.portrait.and.arrow.right")
                     .font(PujaTypography.rounded(13, weight: .semibold))
                     .foregroundStyle(PujaColors.crowdHigh)
@@ -122,7 +147,7 @@ struct SquadHubView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Group Video Call")
                         .font(PujaTypography.rounded(15, weight: .bold))
-                    Text("Live calling with squad · End call controls")
+                    Text("Video calling with live camera and mic controls")
                         .font(PujaTypography.rounded(11))
                         .foregroundStyle(.secondary)
                 }
@@ -160,7 +185,7 @@ struct SquadHubView: View {
                     .background(Capsule().fill(PujaColors.crimsonVelvet))
                     .foregroundStyle(PujaColors.goldBright)
                 Spacer()
-                Button(action: copyInvite) {
+                ShareLink(item: String(format: "Join my Uma squad: %@", env.squad.currentCode ?? "")) {
                     Label("Invite", systemImage: "square.and.arrow.up")
                         .font(PujaTypography.rounded(12, weight: .semibold))
                         .foregroundStyle(.white)
@@ -269,7 +294,7 @@ struct SquadHubView: View {
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Squad Chat").font(PujaTypography.rounded(15, weight: .bold))
-                    Text("Live · \(env.chat.messages(for: env.squad.currentCode ?? "").count) messages")
+                    Text("Live · \(env.chat.messages(for: env.squad.currentId ?? "").count) messages")
                         .font(PujaTypography.rounded(11))
                         .foregroundStyle(.secondary)
                 }
@@ -292,11 +317,6 @@ struct SquadHubView: View {
             .foregroundStyle(PujaColors.durgaRed)
     }
 
-    private func copyInvite() {
-        UIPasteboard.general.string = "Join my Uma squad: \(env.squad.currentCode ?? "")"
-        Haptics.notifySuccess()
-    }
-
     private var createSheet: some View {
         NavigationStack {
             Form {
@@ -311,14 +331,26 @@ struct SquadHubView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Create") {
-                        let host = SquadMember(
-                            id: "user", name: env.userState.currentUserName,
-                            latitude: AppConfig.defaultLat, longitude: AppConfig.defaultLng,
-                            isHost: true, isUser: true)
-                        env.squad.createSquad(name: newSquadName, host: host)
-                        showCreateSheet = false
+                        guard !isSubmitting else { return }
+                        isSubmitting = true
+                        let coordinate = env.location.currentPosition()
+                        Task {
+                            do {
+                                try await env.squad.createSquad(
+                                    name: newSquadName,
+                                    hostName: env.userState.currentUserName,
+                                    latitude: coordinate?.latitude ?? AppConfig.defaultLat,
+                                    longitude: coordinate?.longitude ?? AppConfig.defaultLng
+                                )
+                                showCreateSheet = false
+                            } catch {
+                                operationError = error.localizedDescription
+                            }
+                            isSubmitting = false
+                        }
                     }
                     .fontWeight(.bold)
+                    .disabled(isSubmitting || newSquadName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
             .presentationDetents([.medium])
@@ -340,11 +372,26 @@ struct SquadHubView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Join") {
-                        env.squad.joinSquad(code: joinCode.uppercased())
-                        showJoinSheet = false
+                        guard !isSubmitting else { return }
+                        isSubmitting = true
+                        let coordinate = env.location.currentPosition()
+                        Task {
+                            do {
+                                try await env.squad.joinSquad(
+                                    code: joinCode,
+                                    userName: env.userState.currentUserName,
+                                    latitude: coordinate?.latitude ?? AppConfig.defaultLat,
+                                    longitude: coordinate?.longitude ?? AppConfig.defaultLng
+                                )
+                                showJoinSheet = false
+                            } catch {
+                                operationError = error.localizedDescription
+                            }
+                            isSubmitting = false
+                        }
                     }
                     .fontWeight(.bold)
-                    .disabled(joinCode.isEmpty)
+                    .disabled(isSubmitting || joinCode.isEmpty)
                 }
             }
             .presentationDetents([.medium])
