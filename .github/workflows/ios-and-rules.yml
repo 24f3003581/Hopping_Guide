@@ -1,0 +1,54 @@
+name: iOS build and shared rules
+on:
+  pull_request:
+    paths:
+      - 'ios/**'
+      - 'app/firestore.rules'
+      - 'app/firebase.rules-test.json'
+      - 'app/rules-tests/**'
+      - '.github/workflows/ios-and-rules.yml'
+  push:
+    branches: [master]
+    paths:
+      - 'ios/**'
+      - 'app/firestore.rules'
+      - 'app/firebase.rules-test.json'
+      - 'app/rules-tests/**'
+      - '.github/workflows/ios-and-rules.yml'
+permissions:
+  contents: read
+jobs:
+  firestore-rules:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: app/rules-tests/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: npm ci
+        working-directory: app/rules-tests
+      - run: npm test
+        working-directory: app/rules-tests
+  ios-build:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - run: brew install xcodegen
+      - run: xcodegen generate
+        working-directory: ios
+      - name: Build unsigned iPhone release
+        working-directory: ios
+        run: >-
+          xcodebuild -project Uma.xcodeproj -scheme Uma
+          -configuration Release -destination 'generic/platform=iOS'
+          -derivedDataPath "$RUNNER_TEMP/UmaDerivedData"
+          CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=''
+          build

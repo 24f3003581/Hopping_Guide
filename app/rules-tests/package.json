@@ -1,0 +1,13 @@
+{
+  "name": "uma-firestore-rules-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "cd .. && firebase emulators:exec --only firestore --project demo-uma-rules --config firebase.rules-test.json 'node --test rules-tests/rules.test.mjs'"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "5.0.0",
+    "firebase": "12.19.0",
+    "firebase-tools": "15.33.0"
+  }
+}

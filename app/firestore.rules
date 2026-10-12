@@ -61,6 +61,12 @@ service cloud.firestore {
           'membersUid',
           'lastMessage',
           'lastMessageTime',
+          // Shared hopping-plan transaction fields used by Android v1.0.0.
+          'chosenPandals',
+          'isHoppingActive',
+          'activeStopIndex',
+          'planRevision',
+          'updatedAt',
           'name',
           'meetupPointName',
           'meetupLat',
@@ -146,12 +152,25 @@ service cloud.firestore {
           && validMessage();
         allow delete: if false;
       }
+
+      // Android v1.0.0 submits queue reports within the active group.
+      match /queue_reports/{reportId} {
+        allow read: if isSquadMember(squadId);
+        allow create: if isSquadMember(squadId)
+          && request.resource.data.reporterId == request.auth.uid;
+        allow update, delete: if false;
+      }
     }
 
-    // Configured mobile clients can read pandal information; only trusted server tools write it.
+    // Browsing curated pandals does not require login on Android v1.0.0.
     match /pandals/{pandalId} {
-      allow read: if signedIn();
+      allow read: if true;
       allow write: if false;
+    }
+
+    // Preserve the released Android queue-estimate read/write contract.
+    match /pandal_queue_waits/{pandalId} {
+      allow read, write: if signedIn();
     }
   }
 }

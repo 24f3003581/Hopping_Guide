@@ -61,7 +61,7 @@ open Uma.xcodeproj
 2. Add the downloaded `GoogleService-Info.plist` inside `ios/Uma/` so XcodeGen includes it in the app bundle. Keep this file untracked; do not commit Firebase config files.
 3. Regenerate the Xcode project with `xcodegen generate`. The project spec resolves Firebase Auth, Firestore, and Stream Video through Swift Package Manager.
 4. The video backend must have its Firebase Admin credentials and `STREAM_API_KEY` / `STREAM_API_SECRET` configured on the server. The Stream secret must never be placed in the iOS app.
-5. Deploy the tightened shared Firestore squad rules from `app/firestore.rules` to the existing Firebase project after review: `cd app && firebase deploy --only firestore:rules --project kolkata-puja-2026`.
+5. Verify shared rules locally with `cd app/rules-tests && npm ci && npm test` (Node 22+ and Java 21+). These tests cover Android v1.0.0 hopping-plan updates, queue reports/estimates, public pandal browsing, and Android/iOS group writes. After review, deploy `app/firestore.rules` to the existing Firebase project: `cd app && firebase deploy --only firestore:rules --project kolkata-puja-2026`. Merging the PR does not deploy rules.
 
 Without Firebase configuration, squad create/join, cross-device chat, and video calls show a setup/sign-in error. If the backend or Stream credentials are unavailable, the call screen shows the actual failure; it does not create a demo room.
 
@@ -75,7 +75,7 @@ To run on your physical iPhone:
 
 - Magic Lane GemKit — replaced by MapKit
 - Squad chat currently supports text messages only; image/video uploads are not wired to a storage service.
-- Android's companion calling action opens the phone dialer. The in-app Stream group video call is iOS-specific and depends on the shared Firebase squad membership.
+- Companion phone calling and group video calling are separate actions. Android's v1.0.0 release includes Stream group video calling; the iOS integration uses the same Firebase membership and video backend contract.
 - Bengali script font (Samarkan unavailable) — Bodoni 72 system serif substitute
 - WidgetKit countdown widget — marked v2
 - iOS 26 Liquid Glass visual verification requires a current iOS simulator or device.

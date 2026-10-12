@@ -49,3 +49,6 @@ app/.widget_preview/
 # --- Development screenshots (keep assets and Android res) ---
 /*.png
 app/*.png
+
+# Local Firebase rules emulator logs
+app/*-debug.log
