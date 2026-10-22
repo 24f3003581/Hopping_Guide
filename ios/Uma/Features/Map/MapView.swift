@@ -22,6 +22,7 @@ struct MapView: UIViewRepresentable {
     @Binding var highlightedRoute: WalkingRoute?
     var pandals: [Pandal]
     var metroStations: [MetroStation]
+    var transitStations: [TransitStation] = []
     var foodSpots: [FoodSpot]
     var squadMembers: [SquadMember]
     var showFoodSpots: Bool
@@ -32,8 +33,10 @@ struct MapView: UIViewRepresentable {
     var activeTrail: ActiveCustomTrail? = nil
     var isThreeDimensional: Bool = true
     var showsMapLabels: Bool = true
+    var reduceMotion: Bool = false
     var onTapPandal: (Pandal) -> Void
     var onTapMetro: ((MetroStation) -> Void)? = nil
+    var onTapTransitStation: ((TransitStation) -> Void)? = nil
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -89,6 +92,7 @@ struct MapView: UIViewRepresentable {
         var parent: MapView
         private var lastPandalIds: Set<String> = []
         private var lastMetroIds: Set<String> = []
+        private var lastTransitStationIds: Set<String> = []
         private var lastFoodIds: Set<String> = []
         private var lastSquadIds: Set<String> = []
         private var lastThreeDimensional: Bool?
@@ -174,6 +178,21 @@ struct MapView: UIViewRepresentable {
                 return view
             }
 
+            if let stationAnnotation = annotation as? TransitStationAnnotation {
+                let station = stationAnnotation.station
+                let id = "transit_\(station.id)"
+                let view = (mapView.dequeueReusableAnnotationView(withIdentifier: id) as? MKMarkerAnnotationView)
+                    ?? MKMarkerAnnotationView(annotation: annotation, reuseIdentifier: id)
+                view.annotation = annotation
+                view.markerTintColor = UIColor(station.isMetro ? PujaColors.metroBlue : PujaColors.railwayPurple)
+                view.glyphImage = UIImage(systemName: station.isMetro ? "tram.fill" : "train.side.front.car")
+                view.canShowCallout = true
+                view.clusteringIdentifier = "uma.transit"
+                view.displayPriority = .defaultLow
+                view.zPriority = MKAnnotationViewZPriority(rawValue: station.isMetro ? 500 : 450)
+                return view
+            }
+
             if let f = annotation as? FoodSpotAnnotation {
                 let id = "food_\(f.spot.id)"
                 let view = (mapView.dequeueReusableAnnotationView(withIdentifier: id)
@@ -210,6 +229,10 @@ struct MapView: UIViewRepresentable {
                 Haptics.selection()
                 parent.onTapMetro?(m.station)
             }
+            if let station = view.annotation as? TransitStationAnnotation {
+                Haptics.selection()
+                parent.onTapTransitStation?(station.station)
+            }
             if let p = view.annotation as? FoodSpotAnnotation {
                 Haptics.selection()
             }
@@ -217,7 +240,10 @@ struct MapView: UIViewRepresentable {
 
         func mapView(_ mapView: MKMapView, clusterAnnotationForMemberAnnotations memberAnnotations: [MKAnnotation]) -> MKClusterAnnotation {
             let cluster = MKClusterAnnotation(memberAnnotations: memberAnnotations)
-            cluster.title = "\(memberAnnotations.count) pandals"
+            let isTransitCluster = memberAnnotations.first is TransitStationAnnotation
+            cluster.title = isTransitCluster
+                ? "\(memberAnnotations.count) stations"
+                : "\(memberAnnotations.count) pandals"
             return cluster
         }
 
@@ -226,6 +252,7 @@ struct MapView: UIViewRepresentable {
         func syncAnnotations(_ map: MKMapView) {
             let pandalIds = Set(parent.pandals.map(\.id))
             let metroIds = Set(parent.metroStations.map(\.id))
+            let transitStationIds = Set(parent.transitStations.map(\.id))
             let foodIds = Set(parent.foodSpots.map(\.id))
             let squadIds = Set(parent.squadMembers.map(\.id))
             let currentTrailId = parent.activeTrail?.id
@@ -257,6 +284,14 @@ struct MapView: UIViewRepresentable {
                 }
                 lastMetroIds = metroIds
             }
+            if transitStationIds != lastTransitStationIds {
+                let existing = map.annotations.compactMap { $0 as? TransitStationAnnotation }
+                map.removeAnnotations(existing)
+                if parent.showMetroStations || parent.activeTrail != nil {
+                    map.addAnnotations(parent.transitStations.map(TransitStationAnnotation.init(station:)))
+                }
+                lastTransitStationIds = transitStationIds
+            }
             if foodIds != lastFoodIds {
                 let existing = map.annotations.compactMap { $0 as? FoodSpotAnnotation }
                 map.removeAnnotations(existing)
@@ -267,13 +302,13 @@ struct MapView: UIViewRepresentable {
                 lastFoodIds = foodIds
             }
             if squadIds != lastSquadIds {
-                syncSquadAnnotations(map, members: parent.squadMembers)
+                syncSquadAnnotations(map, members: parent.squadMembers, reduceMotion: parent.reduceMotion)
             } else if !parent.squadMembers.isEmpty {
-                syncSquadAnnotations(map, members: parent.squadMembers)
+                syncSquadAnnotations(map, members: parent.squadMembers, reduceMotion: parent.reduceMotion)
             }
         }
 
-        private func syncSquadAnnotations(_ map: MKMapView, members: [SquadMember]) {
+        private func syncSquadAnnotations(_ map: MKMapView, members: [SquadMember], reduceMotion: Bool) {
             let existing = map.annotations.compactMap { $0 as? SquadMemberAnnotation }
             let annotationsById = Dictionary(uniqueKeysWithValues: existing.map { ($0.member.id, $0) })
             let membersById = Dictionary(uniqueKeysWithValues: members.map { ($0.id, $0) })
@@ -284,7 +319,7 @@ struct MapView: UIViewRepresentable {
                     continue
                 }
                 guard annotation.member != updatedMember else { continue }
-                annotation.member = updatedMember
+                annotation.update(updatedMember, reduceMotion: reduceMotion)
                 map.view(for: annotation)?.image = SquadMemberIcon.image(for: updatedMember)
             }
 

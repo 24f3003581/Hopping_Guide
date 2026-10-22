@@ -30,6 +30,14 @@ final class MetroAnnotation: NSObject, MKAnnotation {
     init(station: MetroStation) { self.station = station }
 }
 
+final class TransitStationAnnotation: NSObject, MKAnnotation {
+    let station: TransitStation
+    var coordinate: CLLocationCoordinate2D { station.coordinate }
+    var title: String? { station.displayName }
+    var subtitle: String? { "\(station.typeLabel) · \(station.lines.first ?? station.network ?? "Kolkata")" }
+    init(station: TransitStation) { self.station = station }
+}
+
 final class FoodSpotAnnotation: NSObject, MKAnnotation {
     let spot: FoodSpot
     var coordinate: CLLocationCoordinate2D { spot.coordinate }
@@ -38,10 +46,10 @@ final class FoodSpotAnnotation: NSObject, MKAnnotation {
     init(spot: FoodSpot) { self.spot = spot }
 }
 
-final class SquadMemberAnnotation: NSObject, MKAnnotation {
+@MainActor
+final class SquadMemberAnnotation: NSObject, @preconcurrency MKAnnotation {
     var member: SquadMember {
         didSet {
-            coordinate = member.coordinate
             title = member.name
             subtitle = member.status
         }
@@ -49,6 +57,7 @@ final class SquadMemberAnnotation: NSObject, MKAnnotation {
     @objc dynamic var coordinate: CLLocationCoordinate2D
     @objc dynamic var title: String?
     @objc dynamic var subtitle: String?
+    private var coordinateUpdateToken = UUID()
 
     init(member: SquadMember) {
         self.member = member
@@ -56,6 +65,41 @@ final class SquadMemberAnnotation: NSObject, MKAnnotation {
         title = member.name
         subtitle = member.status
         super.init()
+    }
+
+    func update(_ updatedMember: SquadMember, reduceMotion: Bool) {
+        guard updatedMember.lastSeen >= member.lastSeen else { return }
+        let start = coordinate
+        let destination = updatedMember.coordinate
+        let oldMarkerState = member.markerState
+        member = updatedMember
+        let distance = CLLocation(latitude: start.latitude, longitude: start.longitude)
+            .distance(from: CLLocation(latitude: destination.latitude, longitude: destination.longitude))
+
+        guard !reduceMotion,
+              oldMarkerState == .fresh,
+              updatedMember.markerState == .fresh,
+              distance >= 3,
+              distance <= 250 else {
+            coordinateUpdateToken = UUID()
+            coordinate = destination
+            return
+        }
+
+        let token = UUID()
+        coordinateUpdateToken = token
+        Task { @MainActor [weak self] in
+            let frameCount = 6
+            for frame in 1...frameCount {
+                try? await Task.sleep(nanoseconds: 70_000_000)
+                guard let self, self.coordinateUpdateToken == token else { return }
+                let progress = Double(frame) / Double(frameCount)
+                self.coordinate = CLLocationCoordinate2D(
+                    latitude: start.latitude + (destination.latitude - start.latitude) * progress,
+                    longitude: start.longitude + (destination.longitude - start.longitude) * progress
+                )
+            }
+        }
     }
 }
 
